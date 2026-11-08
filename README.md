@@ -1,6 +1,6 @@
 # DeltaNet, explained
 
-The companion repo for the post *DeltaNet: Attention That Overwrites Instead of Piling Up*.
+The companion repo for the post [*Drop the Softmax and Attention Becomes an RNN*](https://joshuahaddad.substack.com/p/drop-softmax-and-attention-becomes).
 
 - `deltanet.py`: linear attention and DeltaNet in about 30 lines of NumPy, with checks for the post's claims.
 - `animations/`: the post's figures, one [Manim](https://www.manim.community/) scene per file. `style.py` holds the shared look, and `STYLE.md` describes it.

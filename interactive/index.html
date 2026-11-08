@@ -104,10 +104,9 @@
 <main>
 
 <header>
-  <!-- Once the post is live: set POST_URL at the bottom of the script (shows the per-demo links), and add <a href="POST_URL">Read the post</a> after "Back to the repo". -->
-  <p class="kicker"><a href="https://github.com/joshuahaddad/deltanet-explained">Back to the repo</a></p>
+  <p class="kicker"><a href="https://github.com/joshuahaddad/deltanet-explained">Back to the repo</a> · <a href="https://joshuahaddad.substack.com/p/drop-softmax-and-attention-becomes">Read the post</a></p>
   <h1>DeltaNet, interactively</h1>
-  <p>The five figures from <i>DeltaNet: Attention That Overwrites Instead of Piling Up</i>, with the same numbers, made to move. Each one links back to its section of the post.</p>
+  <p>The five figures from <a href="https://joshuahaddad.substack.com/p/drop-softmax-and-attention-becomes"><i>Drop the Softmax and Attention Becomes an RNN</i></a>, with the same numbers, made to move. Each one links back to its section of the post.</p>
 </header>
 
 <!-- Demo 1: lookup.py -->
@@ -175,7 +174,7 @@
       </div>
     </div>
   </div>
-  <p class="read" hidden>Read in the post: <a data-anchor="#§drop-the-softmax-and-you-get-an-rnn">Drop the Softmax and You Get an RNN</a></p>
+  <p class="read" hidden>Read in the post: <a data-anchor="#§from-transformer-attention-back-to-an-rnn">From Transformer Attention, Back to an RNN</a></p>
 </section>
 
 <!-- Demo 3: crosstalk.py -->
@@ -684,8 +683,8 @@ function checks() {
 checks();
 lkRender(); memSet(0); ctRender(); sdRender(); dtRender();
 document.fonts.ready.then(memDraw); // the canvas text needs CMU Serif loaded
-// The post links stay hidden until POST_URL is set. Anchors are a guess at Substack's slugs: check them once live.
-const POST_URL = "";
+// The post links stay hidden until POST_URL is set. Anchors are Substack's heading ids (#§slug), checked against the live post.
+const POST_URL = "https://joshuahaddad.substack.com/p/drop-softmax-and-attention-becomes";
 if (POST_URL) document.querySelectorAll(".read a[data-anchor]").forEach(a => { a.href = POST_URL + a.dataset.anchor; a.parentElement.hidden = false; });
 </script>
 </body>

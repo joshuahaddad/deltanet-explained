@@ -86,7 +86,8 @@ class SumVsDelta(Scene):
                              MathTex(r"k \text{ holds } v_1.\ \text{Write } k \to v_2", font_size=round(1.5 * style.BODY))
                              .scale_to_fit_width(6.0)).move_to([3.7, 1.75, 0])
         counter = caption(0)
-        veil = Rectangle(width=6.2, height=5.9, fill_color=style.BG, fill_opacity=0.75, stroke_width=0, z_index=5).move_to([3.7, -1.0, 0])
+        # veil stops below the caption, which dims by colour like the equations
+        veil = Rectangle(width=6.2, height=5.35, fill_color=style.BG, fill_opacity=0.75, stroke_width=0, z_index=5).move_to([3.7, -1.275, 0])
 
         self.add(plain, delta, axes, xlab, ylab, sum_lab, blue, orange, baseline, read, goal, legend, readout, counter)
         self.wait(1.0)
@@ -105,7 +106,7 @@ class SumVsDelta(Scene):
             self.wait(hold)
 
         # 1. plain sum
-        self.play(FadeIn(veil), *style.dim(delta, orange), run_time=0.4)
+        self.play(FadeIn(veil), *style.dim(delta, orange, counter), run_time=0.4)
         box = style.box(plain[1])
         self.play(Create(box), run_time=0.3)
         write(1, 0.6, 0.2, True, False)
@@ -114,9 +115,9 @@ class SumVsDelta(Scene):
         self.play(FadeOut(box), run_time=0.3)
 
         # 2. delta rule
-        self.play(FadeOut(veil), delta.animate.set_color(style.ORANGE), orange.animate.set_color(style.ORANGE),
+        self.play(FadeOut(veil), delta.animate.set_color(style.ORANGE), orange.animate.set_color(style.ORANGE), counter.animate.set_color(style.INK),
                   *style.dim(plain, blue), run_time=0.4)
-        box = style.box(delta[3])
+        box = style.box(delta[3:])  # (v - S^T k) and its transpose
         self.play(Create(box), read[1].animate(rate_func=there_and_back).set_stroke(width=8), run_time=0.8)
         write(1, 1.0, 0.5, False, True)
         for n in (2, 3):

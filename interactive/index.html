@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en" data-theme="luxury">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DeltaNet, interactively</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daisyui@5.5.19/daisyui.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daisyui@5.5.19/themes.css">
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.2.4/dist/index.global.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  .grid > *, .flex > * { min-width: 0; }
+  p, li, h1, h2, h3, label, td, th { overflow-wrap: anywhere; }
+  svg { max-width: 100%; height: auto; }
+  .eq { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; white-space: nowrap; }
+  .fig text { font: 13px ui-sans-serif, system-ui, sans-serif; fill: var(--color-base-content); }
+  .fig .axis { stroke: var(--color-base-content); stroke-opacity: .15; fill: none; }
+  .fig .key { stroke-width: 3; }
+  .fig .query { stroke: var(--color-base-content); stroke-width: 4; }
+  .fig .sub { font-size: 11px; opacity: .65; }
+</style>
+</head>
+<body class="bg-base-100 text-base-content">
+<main class="max-w-3xl mx-auto px-4 py-8 space-y-10">
+
+<header class="space-y-2">
+  <p class="text-sm opacity-60">Companion to the DeltaNet post</p>
+  <h1 class="text-3xl font-bold">How attention became an RNN again</h1>
+  <p class="opacity-80">Four steps from softmax attention to DeltaNet, each with a figure you can play with. Code: <code>deltanet.py</code> in this repo.</p>
+</header>
+
+
+
+<section class="space-y-4" id="step1">
+  <h2 class="text-2xl font-semibold">1 · Attention is a soft lookup over a list that keeps growing</h2>
+
+  <p>Start with a Python dictionary. You hand it a <b>query</b>. It finds the <b>key</b> that matches exactly and gives back that key's <b>value</b>. Attention is the same lookup, made soft. Every stored key scores how well it matches the query, and that score is the dot product <span class="eq">q·k</span>, which is large when the two vectors point the same way. Softmax turns the scores into weights that are positive and sum to 1. The output is the weighted blend of all the values. A key that matches strongly contributes most of its value, and a weak match contributes almost nothing.</p>
+
+  <p>In a language model, every token produces its own query, key and value, each from its embedding times a learned matrix (<span class="eq">W<sub>q</sub></span>, <span class="eq">W<sub>k</sub></span>, <span class="eq">W<sub>v</sub></span>). Read them as: the <b>query</b> is "what am I looking for?", the <b>key</b> is "what do I offer, as an advert?", and the <b>value</b> is "what I hand over if you pick me". Keys and values are separate because what makes a token easy to find need not be what it should pass along.</p>
+
+  <div class="card bg-base-200 p-4 space-y-3">
+    <p class="text-sm opacity-80">Try it: four earlier tokens, each with a 2-D key (the coloured arrows) and a value (its colour). Turn the query and watch the weights and the blended output change.</p>
+    <div class="grid sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-4 items-center">
+      <svg class="fig" viewBox="0 0 300 300" role="img" aria-labelledby="f1t">
+        <title id="f1t">Keys as arrows, and the query arrow you control</title>
+        <circle class="axis" cx="150" cy="150" r="110"/>
+        <line class="axis" x1="30" y1="150" x2="270" y2="150"/><line class="axis" x1="150" y1="30" x2="150" y2="270"/>
+        <g id="keys"></g>
+        <line id="q" class="query" x1="150" y1="150" x2="260" y2="150"><title>query</title></line>
+        <text id="qlabel" x="262" y="146">q</text>
+      </svg>
+      <div class="space-y-2 text-sm">
+        <label class="block">Query direction
+          <input id="phi" type="range" min="0" max="359" value="20" class="range range-sm range-primary mt-1" aria-label="query angle"></label>
+        <table class="table table-xs"><thead><tr><th>token</th><th>score q·k</th><th>weight</th></tr></thead><tbody id="tbl"></tbody></table>
+        <div class="flex items-center gap-3"><span>output =</span><span id="out" class="inline-block w-16 h-8 rounded border border-base-content/30"></span><span class="opacity-60 text-xs">the weighted blend of the value colours</span></div>
+      </div>
+    </div>
+  </div>
+
+  <p>Now generation. Modern LLMs are <b>decoder-only</b>: there is no separate encoder, just one stack where each token can look only at itself and earlier tokens. To produce token 1,001, the newest token makes a query and looks it up against the keys of all 1,000 earlier tokens. Those keys and values never change once computed, so the model stores them instead of recomputing them. That store is the <b>KV cache</b>. Each new token adds one more key and value to it and has to compare its query against everything already there. Memory therefore grows linearly with the length of the text, and so does the work per new token. At a million tokens of context, that list is the bottleneck.</p>
+
+  <div class="card bg-base-200 p-5 space-y-3" id="fox">
+    <h3 class="font-semibold">Example: "What does the fox say"</h3>
+    <p class="text-sm">"What" can only look at itself, "does" looks at "What" and itself, and so on. Each row of the grid below is one token's query, and the filled cells are the keys it's allowed to see. That's the triangle, which the papers call the <b>causal mask</b> (the <span class="eq">M</span> or <span class="eq">Tril</span> in Kimi's notation section).</p>
+    <svg class="fig" viewBox="0 0 390 260" role="img" aria-labelledby="foxt">
+      <title id="foxt">Causal mask for the prompt "What does the fox say", plus the first generated token</title>
+      <g id="foxgrid"></g>
+    </svg>
+    <p class="text-sm">The five prompt tokens are not processed one after another. It is still exactly <span class="eq">softmax(q kᵀ) v</span> for every token. The only change is that all five lookups are stacked into matrices and done in one go. That pass is called <b>prefill</b>:</p>
+    <ol class="text-sm space-y-1 ml-5 list-decimal">
+      <li>Stack the five token embeddings as rows: <span class="eq">X</span> is 5 × d.</li>
+      <li><span class="eq">Q = X W<sub>q</sub></span>, <span class="eq">K = X W<sub>k</sub></span>, <span class="eq">V = X W<sub>v</sub></span>. Each is 5 × d, one row per token, and all three are computed at once.</li>
+      <li><span class="eq">Q Kᵀ</span> is 5 × 5. Entry (i, j) is <span class="eq">qᵢ·kⱼ</span>, token i's query scored against token j's key. <b>This is the grid above.</b></li>
+      <li>Set the cells above the diagonal to −∞, so softmax turns them into weight 0. That's the mask. Then apply softmax to each row on its own, which gives each token its own weights summing to 1.</li>
+      <li>Multiply by <span class="eq">V</span> to get a 5 × d result. Row i is token i's blended output, exactly what you'd get by running the one-query lookup for token i by itself.</li>
+    </ol>
+    <p class="text-sm">So prefill is five separate lookups written as one matrix multiply, which a GPU does in one shot. That's the parallelism that made transformers win over RNNs. Generation is the part that has to be sequential. The output at "say" predicts the next token, say "ring". Then "ring" gets one new query, a single row: <span class="eq">q</span> is 1 × d against <span class="eq">K</span>, now 6 × d, giving 1 × 6 scores. That's the highlighted bottom row. The five earlier keys and values already sit in the KV cache, so they are reused rather than recomputed. (Every layer has its own attention, so every layer keeps its own cache.)</p>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<section class="space-y-4" id="step2">
+  <h2 class="text-2xl font-semibold">2 · A single matrix can store key→value pairs</h2>
+
+  <p><span class="eq">S = k vᵀ</span> is a d<sub>k</sub> × d<sub>v</sub> matrix. What matters is what it <i>does</i>. Read it with the key it was built from:</p>
+  <p class="text-center eq">Sᵀ k = (v kᵀ) k = v (kᵀ k) = v · ‖k‖²</p>
+  <p>The only move is regrouping the brackets, which matrix multiplication always allows. The middle part, <span class="eq">kᵀk</span>, is a plain number: the key's squared length. For a unit-length key it is 1, so <b>you get v back exactly</b>. Read it with a perpendicular key <span class="eq">k′</span> and the middle number is <span class="eq">kᵀk′ = 0</span>, so you get nothing back. The matrix behaves like a one-entry dictionary: ask with the right key and you get the value, ask with an unrelated key and you get silence.</p>
+  <p>Now add a second pair <b>into the same matrix</b>: <span class="eq">S = k₁v₁ᵀ + k₂v₂ᵀ</span>. Reading with <span class="eq">k₁</span> gives <span class="eq">v₁(k₁·k₁) + v₂(k₂·k₁)</span>. If the keys are perpendicular, the second term vanishes and you get exactly <span class="eq">v₁</span>. One fixed-size matrix holds many pairs layered on top of each other, with no slots and no list. The catch is that only d<sub>k</sub> directions can be mutually perpendicular. Past that, keys must overlap, and every read picks up <b>crosstalk</b> from the others, in proportion to how similar their keys are.</p>
+
+  <div class="card bg-base-200 p-5 space-y-3 text-sm" id="deriv">
+    <h3 class="font-semibold">The derivation, one rule per line</h3>
+    <table class="table table-sm"><tbody>
+      <tr><td class="eq">S = k₁v₁ᵀ + k₂v₂ᵀ</td><td class="opacity-70">the two stored pairs</td></tr>
+      <tr><td class="eq">Sᵀ = v₁k₁ᵀ + v₂k₂ᵀ</td><td class="opacity-70">the transpose of a sum is the sum of the transposes, and <span class="eq">(a bᵀ)ᵀ = b aᵀ</span></td></tr>
+      <tr><td class="eq">Sᵀk₁ = v₁k₁ᵀk₁ + v₂k₂ᵀk₁</td><td class="opacity-70">multiply both terms by <span class="eq">k₁</span> (distributivity)</td></tr>
+      <tr><td class="eq">= v₁(k₁ᵀk₁) + v₂(k₂ᵀk₁)</td><td class="opacity-70">regroup the brackets (associativity). Each bracket is (1×d)(d×1) = 1×1, so it's a plain number</td></tr>
+      <tr><td class="eq">= v₁(k₁·k₁) + v₂(k₂·k₁)</td><td class="opacity-70">a row vector times a column vector is just the dot product</td></tr>
+    </tbody></table>
+    <p><b>With numbers.</b> Take <span class="eq">k₁ = (1, 0)</span>, <span class="eq">k₂ = (0, 1)</span>, <span class="eq">v₁ = (3, 5)</span>, <span class="eq">v₂ = (7, 2)</span>.</p>
+    <p class="eq">S = [[3,5],[0,0]] + [[0,0],[7,2]] = [[3,5],[7,2]]</p>
+    <p>Reading with <span class="eq">k₁</span>: <span class="eq">Sᵀk₁ = 1·(3,5) + 0·(7,2) = (3,5) = v₁</span> ✓. When the keys are the axis directions, the rows of S are literally the stored values, so it's an ordinary lookup table. Tilt the keys away from the axes and every row holds a mixture of the values. A read still untangles them, as long as the keys stay perpendicular. That's what the demo below lets you break.</p>
+  </div>
+
+  <div class="card bg-base-200 p-4 space-y-3">
+    <p class="text-sm opacity-80">Try it with d<sub>k</sub> = 2. The matrix stores (k₁ → <span style="color:rgb(224,160,48)">orange</span>) and (k₂ → <span style="color:rgb(70,120,230)">blue</span>). We read it with k₁. Move k₂ toward k₁ and watch blue leak into what comes back.</p>
+    <div class="grid sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-4 items-center">
+      <svg class="fig" viewBox="0 0 300 300" role="img" aria-labelledby="f2t">
+        <title id="f2t">Two stored keys in a 2-D key space</title>
+        <circle class="axis" cx="150" cy="150" r="110"/>
+        <line class="axis" x1="30" y1="150" x2="270" y2="150"/><line class="axis" x1="150" y1="30" x2="150" y2="270"/>
+        <g id="k1"><title>k₁, also the read key</title><line class="key" x1="150" y1="150" x2="260" y2="150" stroke="rgb(224,160,48)"/><text x="262" y="166">k₁</text></g>
+        <g id="k2g"><title>k₂</title><line id="k2" class="key" x1="150" y1="150" x2="150" y2="40" stroke="rgb(70,120,230)"/><text id="k2l" x="154" y="34">k₂</text></g>
+      </svg>
+      <div class="space-y-3 text-sm">
+        <label class="block">Angle between k₁ and k₂: <b id="angv">90°</b>
+          <input id="ang" type="range" min="0" max="180" value="90" class="range range-sm range-primary mt-1" aria-label="angle between keys"></label>
+        <p>k₁·k₂ = <b id="dotv">0.00</b>, so the crosstalk weight on blue is that number</p>
+        <div class="flex items-center gap-3"><span class="w-28">stored v₁</span><span class="inline-block w-16 h-8 rounded" style="background:rgb(224,160,48)"></span></div>
+        <div class="flex items-center gap-3"><span class="w-28">read Sᵀk₁</span><span id="rd" class="inline-block w-16 h-8 rounded border border-base-content/30"></span></div>
+        <p class="text-xs opacity-60">The swatch shows v₁ + (k₁·k₂)·v₂. Negative crosstalk subtracts blue instead of adding it.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<section class="space-y-4" id="step3">
+  <h2 class="text-2xl font-semibold">3 · Remove the softmax and the growing list becomes one matrix</h2>
+
+  <p>Write step 1's attention as a sum. The output for query <span class="eq">q</span> is <span class="eq">o = Σᵢ wᵢ vᵢ</span>, where the weights <span class="eq">wᵢ</span> are the softmax of the scores <span class="eq">q·kᵢ</span>. Now do the one thing linear attention does: <b>delete the softmax</b> and use the raw scores as weights. Then the same bracket-regrouping from step 2 finishes the job:</p>
+  <table class="table table-sm text-sm"><tbody>
+    <tr><td class="eq">o = Σᵢ (kᵢ·q) vᵢ</td><td class="opacity-70">raw scores as weights</td></tr>
+    <tr><td class="eq">= Σᵢ vᵢ (kᵢᵀ q)</td><td class="opacity-70">a number times a vector can sit on either side</td></tr>
+    <tr><td class="eq">= (Σᵢ vᵢ kᵢᵀ) q</td><td class="opacity-70">regroup: q is the same in every term, so pull it out of the sum</td></tr>
+    <tr><td class="eq">= Sᵀ q,  with S = Σᵢ kᵢ vᵢᵀ</td><td class="opacity-70">which is <b>exactly step 2's matrix</b>, holding every earlier pair</td></tr>
+  </tbody></table>
+  <p>So "look up q against the whole list" and "read one matrix with q" are the same computation. And because S is just a running sum, there's no need to keep the list at all. Each new token adds its own pair, and you throw the token away:</p>
+  <p class="text-center eq text-lg">S<sub>t</sub> = S<sub>t−1</sub> + k<sub>t</sub> v<sub>t</sub>ᵀ,      o<sub>t</sub> = S<sub>t</sub>ᵀ q<sub>t</sub></p>
+  <p>Look at the shape of that. There's a hidden state, an update rule that folds in the new input, and a readout. <b>That's an RNN</b>, the familiar <span class="eq">h<sub>t</sub> = f(h<sub>t−1</sub>, x<sub>t</sub>)</span>. The only difference is that the state is a matrix instead of a vector. This is the very first equation in Kimi Linear's background section (§2.2). Everything after it in both papers is an edit to how <span class="eq">S<sub>t−1</sub></span> becomes <span class="eq">S<sub>t</sub></span>.</p>
+
+  <svg class="fig" viewBox="0 0 670 230" role="img" aria-labelledby="f3t">
+    <title id="f3t">Softmax attention keeps a growing list; linear attention keeps one fixed matrix</title>
+    <text x="10" y="22" font-weight="600">Softmax attention: the KV cache grows</text>
+    <g id="cache"></g>
+    <text x="10" y="132" font-weight="600">Linear attention: one fixed state</text>
+    <g id="state"></g>
+  </svg>
+
+  <p>Why couldn't you do this with the softmax in place? Softmax weights are <span class="eq">exp(q·kᵢ)</span> divided by the sum over every key. The exp doesn't split into "a part depending on q" times "a part depending on kᵢ", so q can't be pulled out of the sum. Removing the softmax is what makes the regrouping legal. The price is what step 2 showed: no averaging, nothing ever replaced, and a fixed capacity. The model also still trains in parallel: drop the softmax from step 1's <span class="eq">masked QKᵀ · V</span> and it computes the same outputs. It's one formula with two ways to run it. The papers call these the parallel (or chunkwise) form and the recurrent form.</p>
+</section>
+
+<div class="divider"></div>
+
+<section class="space-y-4" id="step4">
+  <h2 class="text-2xl font-semibold">4 · The delta rule: read before you write</h2>
+
+  <p>The flaw in <span class="eq">S<sub>t</sub> = S<sub>t−1</sub> + k vᵀ</span> is the one from step 2: it can only add. Writing the same pair 50 times gives 50v, and writing a <i>new</i> value for an old key gives "old + new". What you actually want is a write that guarantees <b>reading with k afterwards returns v</b>.</p>
+  <p>The fix is to look first. Read what the memory currently holds at this key, <span class="eq">v<sub>old</sub> = Sᵀk</span>. Then write only the difference:</p>
+  <p class="text-center eq text-lg">S ← S + k (v − Sᵀk)ᵀ</p>
+  <p>Check it with step 2's reading rule. The new read is <span class="eq">v<sub>old</sub> + (v − v<sub>old</sub>)(kᵀk) = v</span> for a unit key. So the old value is replaced, not added to. Write the same pair a second time and the difference is zero, so nothing changes. Other keys are untouched, as far as they're perpendicular to k. Then add one knob: a <b>write strength</b> <span class="eq">β ∈ [0, 1]</span>, produced fresh for each token from that token's own embedding, like q, k and v.</p>
+  <p class="text-center eq text-lg">S<sub>t</sub> = S<sub>t−1</sub> + β<sub>t</sub> k<sub>t</sub> (v<sub>t</sub> − S<sub>t−1</sub>ᵀ k<sub>t</sub>)ᵀ</p>
+  <p>β = 1 overwrites completely. β = 0.1 nudges the stored value 10% of the way toward the new one. This is <b>DeltaNet</b>, and "delta" is the difference <span class="eq">v − Sᵀk</span>, the error.</p>
+
+  <div class="card bg-base-200 p-4 space-y-3">
+    <p class="text-sm opacity-80">Try it. Key k already stores <span style="color:rgb(224,160,48)">orange</span>. Each click writes "k → <span style="color:rgb(70,120,230)">blue</span>" into both memories. The plain sum keeps piling on, while the delta rule settles.</p>
+    <div class="flex flex-wrap items-center gap-3 text-sm">
+      <button type="button" id="wr" class="btn btn-sm btn-primary">Write k → blue</button>
+      <button type="button" id="rs" class="btn btn-sm btn-ghost">Reset</button>
+      <label class="flex items-center gap-2">β <input id="beta" type="range" min="0.1" max="1" step="0.1" value="0.5" class="range range-xs w-28" aria-label="beta"><b id="bv">0.5</b></label>
+      <span>writes: <b id="nw">0</b></span>
+    </div>
+    <div class="grid sm:grid-cols-2 gap-3 text-sm">
+      <div class="flex items-center gap-3"><span class="w-32">plain sum, Sᵀk</span><span id="rl" class="inline-block w-14 h-8 rounded border border-base-content/30"></span><span id="ml" class="opacity-70"></span></div>
+      <div class="flex items-center gap-3"><span class="w-32">delta rule, Sᵀk</span><span id="rdl" class="inline-block w-14 h-8 rounded border border-base-content/30"></span><span id="md" class="opacity-70"></span></div>
+    </div>
+    <p class="text-xs opacity-60">"Size" is ‖Sᵀk‖ divided by ‖blue‖. The goal is 1.0, the right colour at the right size.</p>
+  </div>
+
+  <h3 class="text-lg font-semibold">Why the papers call this "online gradient descent"</h3>
+  <p>Set the memory a task for this one token: <i>make <span class="eq">Sᵀk</span> equal v</i>. The loss is <span class="eq">L = ½‖Sᵀk − v‖²</span>. It's ordinary least squares, the same shape as <span class="eq">½‖Wx − y‖²</span>, where the gradient is famously <b>error times input</b>, <span class="eq">(Wx − y) xᵀ</span>. The chain rule gives exactly that: the outer ½ and square give the error, and the inner <span class="eq">Wx</span> gives the x. Here the "input" is k and the error is <span class="eq">Sᵀk − v</span>, so <span class="eq">∇<sub>S</sub>L = k (Sᵀk − v)ᵀ</span>. One step downhill with learning rate β:</p>
+  <p class="text-center eq">S − β k (Sᵀk − v)ᵀ = S + β k (v − Sᵀk)ᵀ</p>
+  <p>That's the delta rule, character for character. So each token runs <b>one step of gradient descent on the memory</b>, at inference time, inside the forward pass. This is where the papers' vocabulary comes from. S is the "fast weights", trained per token, while the W matrices are the slow weights, trained once. You'll also see "online learning" and "test-time training". And β is literally a learning rate that the model picks per token.</p>
+
+  <h3 class="text-lg font-semibold">The form the papers print</h3>
+  <p>Multiply out the brackets and group the terms by S, and you get the version in Kimi's eq. (1) and GDN-2's eq. (7):</p>
+  <p class="text-center eq text-lg">S<sub>t</sub> = (I − β<sub>t</sub> k<sub>t</sub> k<sub>t</sub>ᵀ) S<sub>t−1</sub> + β<sub>t</sub> k<sub>t</sub> v<sub>t</sub>ᵀ</p>
+  <p>Read it in two parts. <span class="eq">(I − βkkᵀ)</span> <b>erases</b>: it shrinks whatever is stored along the k direction by a fraction β and leaves everything perpendicular alone. <span class="eq">βkvᵀ</span> then <b>writes</b> the new value at k. Notice that the same β sets both how hard to erase and how hard to write. Hold onto that observation, because Gated DeltaNet-2 is built on it.</p>
+</section>
+
+</main>
+<script>
+  // shortcut: hand-picked toy keys and colours; fine for a 2-D illustration
+  const toks = [
+    { name: 'The', ang: 200, col: [90, 140, 230] },
+    { name: 'cat', ang: 30, col: [224, 160, 48] },
+    { name: 'sat', ang: 110, col: [80, 190, 120] },
+    { name: 'mat', ang: 300, col: [210, 80, 110] },
+  ];
+  const SCALE = 3; // sharpens softmax so unit-length 2-D keys still give a visible preference
+  const rad = d => d * Math.PI / 180, cx = 150, cy = 150, R = 110;
+  const g = document.getElementById('keys');
+  for (const t of toks) {
+    const x = cx + R * Math.cos(rad(t.ang)), y = cy - R * Math.sin(rad(t.ang));
+    const c = `rgb(${t.col})`;
+    g.insertAdjacentHTML('beforeend', `<g id="key-${t.name}"><title>key of "${t.name}"</title><line class="key" x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="${c}"/><circle cx="${x}" cy="${y}" r="5" fill="${c}"/><text x="${cx + (R + 18) * Math.cos(rad(t.ang)) - 12}" y="${cy - (R + 18) * Math.sin(rad(t.ang)) + 4}">${t.name}</text></g>`);
+  }
+  const phi = document.getElementById('phi');
+  function draw() {
+    const a = +phi.value;
+    const qx = cx + R * Math.cos(rad(a)), qy = cy - R * Math.sin(rad(a));
+    const q = document.getElementById('q'); q.setAttribute('x2', qx); q.setAttribute('y2', qy);
+    const ql = document.getElementById('qlabel'); ql.setAttribute('x', cx + (R + 14) * Math.cos(rad(a)) - 4); ql.setAttribute('y', cy - (R + 14) * Math.sin(rad(a)) + 4);
+    const s = toks.map(t => Math.cos(rad(a - t.ang)));
+    const e = s.map(v => Math.exp(SCALE * v)), Z = e.reduce((p, v) => p + v, 0), w = e.map(v => v / Z);
+    document.getElementById('tbl').innerHTML = toks.map((t, i) => `<tr><td style="color:rgb(${t.col})">${t.name}</td><td>${s[i].toFixed(2)}</td><td><progress class="progress w-20" value="${w[i]}" max="1"></progress> ${(w[i] * 100).toFixed(0)}%</td></tr>`).join('');
+    const o = [0, 1, 2].map(j => Math.round(toks.reduce((p, t, i) => p + w[i] * t.col[j], 0)));
+    document.getElementById('out').style.background = `rgb(${o})`;
+  }
+  phi.addEventListener('input', draw); draw();
+
+  // causal-mask grid for the fox example
+  const words = ['What', 'does', 'the', 'fox', 'say', 'ring'], C = 34, X0 = 80, Y0 = 34;
+  let svg = '';
+  words.forEach((w, j) => svg += `<text x="${X0 + j * C + C / 2}" y="${Y0 - 10}" text-anchor="middle">${w}</text>`);
+  words.forEach((w, i) => {
+    svg += `<text x="${X0 - 8}" y="${Y0 + i * C + C / 2 + 4}" text-anchor="end">${w}</text>`;
+    words.forEach((_, j) => {
+      const on = j <= i, gen = i === 5;
+      svg += `<rect x="${X0 + j * C + 2}" y="${Y0 + i * C + 2}" width="${C - 4}" height="${C - 4}" rx="4" fill="${on ? (gen ? 'var(--color-primary)' : 'var(--color-base-content)') : 'none'}" fill-opacity="${on ? (gen ? .7 : .35) : 0}" stroke="var(--color-base-content)" stroke-opacity=".2"><title>${w} → ${words[j]}: ${on ? 'can see' : 'masked (future)'}</title></rect>`;
+    });
+  });
+  svg += `<text x="${X0 + 6 * C + 8}" y="${Y0 + 2.5 * C + 4}" class="sub">prefill:</text><text x="${X0 + 6 * C + 8}" y="${Y0 + 2.5 * C + 20}">parallel</text>`;
+  svg += `<text x="${X0 + 6 * C + 8}" y="${Y0 + 5.5 * C + 4}">generated,</text><text x="${X0 + 6 * C + 8}" y="${Y0 + 5.5 * C + 20}">uses cache</text>`;
+  svg += `<text x="${X0}" y="${Y0 + 6 * C + 16}" class="sub">rows = queries · columns = keys</text>`;
+  document.getElementById('foxgrid').innerHTML = svg;
+
+  // step 2: crosstalk demo, read = v1 + cos(theta) * v2
+  const v1 = [224, 160, 48], v2 = [70, 120, 230], ang = document.getElementById('ang');
+  function draw2() {
+    const t = +ang.value, c = Math.cos(rad(t));
+    const k2 = document.getElementById('k2');
+    k2.setAttribute('x2', cx + R * Math.cos(rad(t))); k2.setAttribute('y2', cy - R * Math.sin(rad(t)));
+    const l = document.getElementById('k2l'); l.setAttribute('x', cx + (R + 14) * Math.cos(rad(t)) - 6); l.setAttribute('y', cy - (R + 14) * Math.sin(rad(t)) + 4);
+    document.getElementById('angv').textContent = t + '°';
+    document.getElementById('dotv').textContent = c.toFixed(2);
+    // shortcut: clamps to 0–255, so large overlaps saturate instead of showing true magnitude
+    document.getElementById('rd').style.background = `rgb(${v1.map((x, j) => Math.max(0, Math.min(255, Math.round(x + c * v2[j]))))})`;
+  }
+  ang.addEventListener('input', draw2); draw2();
+
+
+  // step 4 demo: with k fixed and unit, S^T k is a single vector r, so track r for each rule
+  const orange = [224, 160, 48], blue = [70, 120, 230], nb = Math.hypot(...blue);
+  let rl, rd, nw;
+  const sw = (id, r) => document.getElementById(id).style.background = `rgb(${r.map(x => Math.max(0, Math.min(255, Math.round(x))))})`;
+  function show4() {
+    sw('rl', rl); sw('rdl', rd);
+    document.getElementById('ml').textContent = 'size ' + (Math.hypot(...rl) / nb).toFixed(2);
+    document.getElementById('md').textContent = 'size ' + (Math.hypot(...rd) / nb).toFixed(2);
+    document.getElementById('nw').textContent = nw;
+  }
+  function reset4() { rl = [...orange]; rd = [...orange]; nw = 0; show4(); }
+  const beta = document.getElementById('beta');
+  beta.addEventListener('input', () => document.getElementById('bv').textContent = beta.value);
+  document.getElementById('wr').addEventListener('click', () => {
+    const b = +beta.value;
+    rl = rl.map((x, j) => x + blue[j]);              // S += k vᵀ
+    rd = rd.map((x, j) => x + b * (blue[j] - x));    // S += β k (v − Sᵀk)ᵀ
+    nw++; show4();
+  });
+  document.getElementById('rs').addEventListener('click', reset4); reset4();
+
+  // step 3 figure: growing cache vs fixed state, at four time points
+  let cache = '', state = '';
+  [1, 2, 4, 8].forEach((n, i) => {
+    const x = 10 + i * 160;
+    for (let j = 0; j < n; j++) cache += `<rect x="${x + (j % 4) * 26}" y="${36 + Math.floor(j / 4) * 30}" width="22" height="24" rx="3" fill="var(--color-primary)" fill-opacity=".45"><title>one cached k,v pair</title></rect>`;
+    cache += `<text x="${x}" y="110" class="sub">t = ${n}: ${n} pair${n > 1 ? 's' : ''}</text>`;
+    state += `<rect x="${x}" y="146" width="56" height="56" rx="4" fill="var(--color-secondary)" fill-opacity="${.25 + i * .15}"><title>the state S, same size at every step</title></rect><text x="${x}" y="220" class="sub">t = ${n}: one S, d_k × d_v</text>`;
+  });
+  document.getElementById('cache').innerHTML = cache;
+  document.getElementById('state').innerHTML = state;
+
+</script>
+</body>
+</html>

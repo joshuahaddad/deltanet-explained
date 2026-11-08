@@ -15,6 +15,7 @@ for n in "${names[@]}"; do
   rm -rf ".media/images/$n"
   docker run --rm --user "$(id -u):$(id -g)" -v "$PWD":/manim -w /manim/animations "$IMAGE" bash -c "
     manim -qm --format png --media_dir /manim/.media $n.py &&
-    python /manim/frames_to_gif.py /manim/.media/images/$n /manim/figures/$n.gif"
-  echo "wrote figures/$n.gif ($(du -h figures/$n.gif | cut -f1))"
+    f=(/manim/.media/images/$n/*.png) && ext=gif && { [ \${#f[@]} -gt 1 ] || ext=png; } &&  # no animation: a still
+    python /manim/frames_to_gif.py /manim/.media/images/$n /manim/figures/$n.\$ext &&
+    echo wrote figures/$n.\$ext \(\$(du -h /manim/figures/$n.\$ext | cut -f1)\)"
 done

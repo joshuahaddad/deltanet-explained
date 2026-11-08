@@ -12,6 +12,7 @@
     --bg: #16141C; --mat: #1B1922; --surface: #211E29; --rule: #2E2A38;
     --muted: #8A8696; --ink: #ECEAF0;
     --primary: #E69F00; --secondary: #56B4E9; --accent: #CC79A7;
+    --target: #8FE8BE; --error: #F2795A;
     --page: #0F0E13; --text: var(--ink); --text-muted: var(--muted); --link: var(--secondary);
     --serif: "CMU Serif", "Latin Modern Roman", "Computer Modern", Georgia, "Times New Roman", serif;
   }
@@ -21,257 +22,664 @@
   *, *::before, *::after { box-sizing: border-box; }
   html { -webkit-text-size-adjust: 100%; }
   body { margin: 0; background: var(--page); color: var(--text); font: 19px/1.6 var(--serif); }
-  main { max-width: 42rem; margin: 0 auto; padding: 24px 16px 64px; }
+  main { max-width: 40rem; margin: 0 auto; padding: 24px 16px 64px; }
   h1 { font-size: 2rem; line-height: 1.2; margin: .4em 0 .3em; }
   h2 { font-size: 1.45rem; line-height: 1.25; margin: 2.2em 0 .5em; }
-  p, li, td, th, label { overflow-wrap: anywhere; }
+  p { overflow-wrap: anywhere; }
   a { color: var(--link); }
   .kicker { color: var(--text-muted); font-size: .9rem; margin: 0; }
   .kicker a { margin-right: .8em; }
-  .m { font-style: italic; white-space: nowrap; }
-  .n { font-style: normal; }
-  .eqn { text-align: center; font-style: italic; margin: 1em 0; overflow-x: auto; font-size: 1.08rem; }
-  .eqn > span { white-space: nowrap; display: inline-block; }
   sub, sup { font-size: .72em; line-height: 0; }
-  sup.t { font-style: normal; }
+  sup { font-style: normal; }
+  .read { font-size: .95rem; color: var(--text-muted); }
+  footer { margin-top: 3em; font-size: .95rem; color: var(--text-muted); }
 
-  /* Figure plate: dark plate, 6 px mat band, 14 px corners, like the GIFs. */
-  .plate { background: var(--bg); color: var(--ink); border: 6px solid var(--mat); border-radius: 14px; padding: 16px; margin: 1.5em 0 .5em; font-size: .92rem; }
-  .cap { color: var(--text-muted); font-style: italic; font-size: .92rem; margin: 0 0 1.5em; }
-  .plate svg { display: block; width: 100%; max-width: 100%; height: auto; }
-  .plate svg text { font: 14px var(--serif); fill: var(--ink); }
-  .plate .sub { fill: var(--muted); font-size: 13px; }
-  .plate svg.wide-fig text { font-size: 20px; }
-  @media (max-width: 639px) { .plate svg.wide-fig text { font-size: 24px; } } /* 670-unit viewBox shrinks about 2x on a phone */
-  .plate .axis { stroke: var(--rule); stroke-width: 2; fill: none; }
-  .two { display: grid; gap: 16px; align-items: center; }
-  .two > * { min-width: 0; }
-  @media (min-width: 640px) { .two { grid-template-columns: 1fr 1fr; } }
-  .plate table { width: 100%; border-collapse: collapse; }
-  .plate th, .plate td { text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--rule); font-weight: normal; }
-  .plate th { color: var(--muted); }
-  .muted { color: var(--muted); }
-  .bar { display: inline-block; height: 10px; border-radius: 2px; vertical-align: middle; }
-  .track { display: inline-block; width: 80px; height: 10px; background: var(--surface); border-radius: 2px; vertical-align: middle; position: relative; }
-  .track .bar { position: absolute; top: 0; }
-  .row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 8px 0; }
-  .row .lbl { min-width: 7.5em; }
-  .wide { flex: 1 1 140px; height: 12px; background: var(--surface); border-radius: 2px; position: relative; overflow: hidden; }
-  .wide .bar { position: absolute; top: 0; height: 100%; }
-  input[type=range] { width: 100%; }
-  .q-in { accent-color: var(--secondary); }
-  .o-in { accent-color: var(--primary); }
-  button { font: inherit; color: var(--ink); background: var(--surface); border: 2px solid var(--muted); border-radius: 8px; padding: 4px 12px; cursor: pointer; }
+  /* Figure plate: dark plate, 6 px mat band, 14 px corners, like the GIFs. Breaks out of the text column. */
+  .plate { background: var(--bg); color: var(--ink); border: 6px solid var(--mat); border-radius: 14px; padding: 12px;
+    margin: 1.2em 0 .6em; font-size: 16px; line-height: 1.4;
+    width: min(calc(100vw - 32px), 1040px); margin-left: calc((100% - min(calc(100vw - 32px), 1040px)) / 2); }
+  .panels { display: grid; gap: 16px; }
+  .panels > * { min-width: 0; }
+  @media (min-width: 760px) { .panels { grid-template-columns: 1fr 1fr; align-items: start; } }
+  .plate svg, .plate canvas { display: block; width: 100%; max-width: 480px; height: auto; margin: 0 auto; }
+  .plate svg text { font-family: var(--serif); font-size: 16px; fill: var(--ink); }
+  .plate svg.wide { max-width: 720px; }
+  .plate svg.wide text { font-size: 20px; }
+  @media (max-width: 759px) { .plate svg.wide text { font-size: 32px; } } /* 720-unit viewBox shrinks to about 0.45 on a phone */
+  .plate p { margin: .4em 0; }
+  .o { color: var(--primary); } .b { color: var(--secondary); } .t { color: var(--target); } .e { color: var(--error); } .mu { color: var(--muted); }
+  .box { border: 3px solid var(--accent); border-radius: 6px; padding: 0 4px; }
+  .head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; font-size: 18px; margin-bottom: 8px; }
+  .eq { text-align: center; font-size: 18px; margin: .2em 0; }
+  .center { text-align: center; }
+  .cap { color: var(--muted); font-size: 15px; margin: 4px 0 0; }
+
+  /* Controls: 44 px targets. */
+  .ctl { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
+  .ctl label { display: block; width: 100%; }
+  button { font: inherit; color: var(--ink); background: var(--surface); border: 2px solid var(--muted); border-radius: 8px;
+    min-height: 44px; min-width: 44px; padding: 0 16px; cursor: pointer; }
   button:hover, button:focus-visible { border-color: var(--ink); }
-  .c-o { color: var(--primary); } .c-b { color: var(--secondary); }
+  button:focus-visible, input:focus-visible, .plate tr:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  button[aria-pressed="true"] { background: var(--rule); border-color: var(--ink); }
+  button:disabled { color: var(--muted); border-color: var(--rule); cursor: default; }
+  button.write { min-height: 48px; border-color: var(--primary); }
+  .seg { display: flex; flex-wrap: wrap; gap: 6px; }
+  .seg button { flex: 1 1 auto; padding: 0 10px; }
+  input[type=range] { -webkit-appearance: none; appearance: none; display: block; width: 100%; height: 44px; margin: 0; background: transparent; --c: var(--secondary); accent-color: var(--c); }
+  input[type=range].ob { --c: var(--primary); }
+  input[type=range]::-webkit-slider-runnable-track { height: 6px; border-radius: 3px; background: var(--rule); }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 28px; height: 28px; margin-top: -11px; border-radius: 50%; background: var(--c); border: 2px solid var(--bg); }
+  input[type=range]::-moz-range-track { height: 6px; border-radius: 3px; background: var(--rule); }
+  input[type=range]::-moz-range-thumb { width: 28px; height: 28px; border-radius: 50%; background: var(--c); border: 2px solid var(--bg); }
+  .handle { touch-action: none; cursor: grab; outline: none; }
+  .handle:focus-visible { stroke: var(--ink); stroke-width: 2; stroke-dasharray: 4 3; }
+
+  /* Demo 1 table */
+  .tbox { background: var(--surface); border: 2px solid var(--muted); border-radius: 8px; padding: 2px 6px; }
+  .plate table { width: 100%; border-collapse: collapse; }
+  .plate th, .plate td { text-align: left; padding: 0 4px; font-weight: normal; white-space: nowrap; }
+  .plate th { color: var(--muted); height: 32px; }
+  .plate td { height: 44px; }
+  .plate tbody tr { cursor: pointer; }
+  .plate tr.hit { outline: 2px dashed var(--target); outline-offset: -3px; }
+  .wcell { display: flex; align-items: center; gap: 6px; }
+  .wbar { flex: 1 1 auto; min-width: 30px; height: 12px; position: relative; }
+  .wbar span { position: absolute; left: 0; top: 0; height: 100%; background: var(--secondary); }
+  .wn { width: 2.2em; text-align: right; }
+  .tag { margin-left: .6em; }
+
+  /* Demo 5 key strip */
+  .strip { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin-bottom: 8px; }
+  .chips { display: flex; gap: 0; justify-content: space-between; flex: 1 1 auto; max-width: 480px; }
+  .chip { width: 38px; height: 36px; display: flex; align-items: center; justify-content: center; background: var(--surface);
+    border: 2px solid var(--muted); border-radius: 6px; color: var(--muted); font-size: 17px; }
+  .chip.lit { border: 4px solid var(--primary); color: var(--primary); }
+  @media (max-width: 759px) { .strip > .mu { width: 100%; } }
+  .bgrp { display: flex; align-items: center; gap: 8px; }
+  .axt { color: var(--muted); font-size: 15px; margin: 0; }
 </style>
 </head>
 <body>
 <main>
 
 <header>
-  <!-- SUBSTACK_URL: once the post is live, put this back before "Back to the repo": <a href="SUBSTACK_URL">Read the post</a> -->
+  <!-- Once the post is live: set POST_URL at the bottom of the script (shows the per-demo links), and add <a href="POST_URL">Read the post</a> after "Back to the repo". -->
   <p class="kicker"><a href="https://github.com/joshuahaddad/deltanet-explained">Back to the repo</a></p>
   <h1>DeltaNet, interactively</h1>
-  <p>The figures from <i>DeltaNet: Attention That Overwrites Instead of Piling Up</i>, made so you can move the pieces. The post has the full argument, and the reference code is <code>deltanet.py</code> in the repo.</p>
+  <p>The five figures from <i>DeltaNet: Attention That Overwrites Instead of Piling Up</i>, with the same numbers, made to move. Each one links back to its section of the post.</p>
 </header>
 
+<!-- Demo 1: lookup.py -->
 <section id="lookup">
-  <h2>Attention Is a Lookup That Keeps Everything</h2>
-  <p>Start with a Python dict. You hand it a key, it finds the exact match, and it gives you back the value. Attention is the same lookup, made soft. The keys and values are vectors, and the query <span class="m">q</span> need not match a key exactly. Every stored key <span class="m">k</span> gets a score for how well it matches <span class="m">q</span>: the dot product <span class="m">q·k</span>. For unit-length vectors that score is the cosine of the angle between them. It is 1 when they point the same way, 0 when they are perpendicular, and negative when they point apart. Softmax turns the scores into weights that are positive and sum to 1, and the output is the weighted blend of all the values.</p>
-  <p>Every token makes its own query, key and value by multiplying its embedding by three learned matrices, <span class="m">W<sub>q</sub></span>, <span class="m">W<sub>k</sub></span> and <span class="m">W<sub>v</sub></span>. The query is "what am I looking for", the key is "what do I offer", and the value is "what I hand over if you pick me".</p>
-
+  <h2>Attention is a soft lookup</h2>
+  <p>A dict returns a value only when the key matches exactly. Attention scores every key against the query and blends all the values, so drag <i>q</i> anywhere and it still answers.</p>
   <div class="plate">
-    <div class="two">
-      <svg viewBox="0 0 300 300" role="img" aria-labelledby="f1t">
-        <title id="f1t">Four cached keys as arrows, and the query arrow you control</title>
-        <circle class="axis" cx="150" cy="150" r="110"/>
-        <line class="axis" x1="30" y1="150" x2="270" y2="150"/><line class="axis" x1="150" y1="30" x2="150" y2="270"/>
-        <g id="keys"></g>
-        <line id="q" x1="150" y1="150" x2="260" y2="150" stroke="#56B4E9" stroke-width="5" stroke-linecap="round"><title>query</title></line>
-        <text id="qlabel" x="262" y="146" style="fill:#56B4E9;font-style:italic">q</text>
-      </svg>
+    <div class="head"><span id="lk-title">dict: exact match</span><span id="lk-mem" class="b"></span></div>
+    <div class="panels">
       <div>
-        <label>Query direction
-          <input id="phi" class="q-in" type="range" min="0" max="359" value="20" aria-label="query angle"></label>
-        <table><thead><tr><th>token</th><th>score <i>q·k</i></th><th>weight</th></tr></thead><tbody id="tbl"></tbody></table>
-        <p id="out" class="muted"></p>
+        <p class="b center" id="lk-q">q = [2, 1]</p>
+        <svg id="lk-svg" viewBox="0 0 360 360" role="img" aria-labelledby="lk-svgt">
+          <title id="lk-svgt">The cached keys as arrows in the plane, and the query arrow q, which you can drag</title>
+          <g id="lk-g"></g>
+          <circle id="lk-h" class="handle" r="25" cx="300" cy="120" fill="transparent" tabindex="0" role="slider"
+            aria-label="query q; arrow keys move it" aria-valuemin="-2.5" aria-valuemax="2.5" aria-valuenow="2"></circle>
+        </svg>
+        <div class="ctl seg" role="group" aria-label="stage">
+          <button type="button" data-stage="dict" aria-pressed="true">dict</button>
+          <button type="button" data-stage="attn" aria-pressed="false">attention</button>
+          <button type="button" data-stage="next" aria-pressed="false">next token</button>
+        </div>
+      </div>
+      <div>
+        <div class="tbox">
+          <table>
+            <thead><tr><th>token</th><th><i>k</i></th><th><i>v</i></th><th class="b"><i>q</i>·<i>k</i></th><th><i>w</i></th></tr></thead>
+            <tbody id="lk-tb"></tbody>
+          </table>
+        </div>
+        <p class="mu" id="lk-cache">KV cache: 5 tokens</p>
+        <p id="lk-out" class="center"></p>
+        <p id="lk-out2" class="center mu"></p>
       </div>
     </div>
   </div>
-  <p class="cap">Four cached tokens, each with a unit-length 2-D key (orange). Turn the query (blue): a key pointing away from it scores below zero and gets a small weight. The weights here are <span style="white-space:nowrap">softmax(3 q·k)</span>, so the toy keys show a clear preference.</p>
-
-  <p>Now generation. To produce token 1,001, the newest token's query gets compared against the keys of all 1,000 earlier tokens. The model stores those keys and values instead of recomputing them: the KV cache. Every new token adds one more key and value, per layer and per head, so memory and the work per new token both grow with the length of the text. At a million tokens, that list is the bottleneck.</p>
+  <p class="read" hidden>Read in the post: <a data-anchor="#§attention-is-a-lookup-that-keeps-everything">Attention Is a Lookup That Keeps Everything</a></p>
 </section>
 
-<section id="rnn">
-  <h2>Drop the Softmax and You Get an RNN</h2>
-  <p>Store one key-value pair as a matrix:</p>
-  <p class="eqn">S = k v<sup class="t">T</sup></p>
-  <p><span class="m">S</span> is <span class="m">d<sub>k</sub> × d<sub>v</sub></span>. To look up a value, read it with a query:</p>
-  <p class="eqn">S<sup class="t">T</sup>q = (k v<sup class="t">T</sup>)<sup class="t">T</sup>q = v (k<sup class="t">T</sup>q)</p>
-  <p>Set <span class="m">q = k</span>, a dict-style lookup of an existing key, with <span class="m">k</span> and <span class="m">v</span> unit length, and you get the value back:</p>
-  <p class="eqn">S<sup class="t">T</sup>k = v (k<sup class="t">T</sup>k) = v ‖k‖<sup class="n">2</sup> = v</p>
-  <p>Now write attention as a weighted sum, with the softmax scores as the weights:</p>
-  <p class="eqn">o = Σ<sub>i</sub> softmax(q·k<sub>i</sub>) v<sub>i</sub></p>
-  <p>Delete the softmax and use the raw scores as the weights. The query is the same in every term, so it comes out of the sum:</p>
-  <p class="eqn"><span>o = Σ<sub>i</sub> (q·k<sub>i</sub>) v<sub>i</sub></span> <span>= (Σ<sub>i</sub> v<sub>i</sub> k<sub>i</sub><sup class="t">T</sup>) q = S<sup class="t">T</sup>q,</span>&ensp; <span>S = Σ<sub>i</sub> k<sub>i</sub> v<sub>i</sub><sup class="t">T</sup></span></p>
-  <p>That is exactly the lookup from before. Because <span class="m">S</span> is a running sum, there's no need to keep a list at all. Each new token adds its <span class="m">(k, v)</span> pair, and you throw the token away:</p>
-  <p class="eqn"><span>S<sub>t</sub> = S<sub>t−1</sub> + k<sub>t</sub> v<sub>t</sub><sup class="t">T</sup>,</span>&ensp; <span>o<sub>t</sub> = S<sub>t</sub><sup class="t">T</sup>q<sub>t</sub></span></p>
-  <p>That's a hidden state, an update that folds in the new input, and a readout. In other words, an RNN, with a matrix for a state instead of a vector.</p>
-  <p>You can't do this with the softmax in place. The weight is <span class="m">exp(q·k)</span> divided by a sum over every key, and that doesn't split into a part that depends on <span class="m">q</span> multiplied by a part that depends on <span class="m">k</span>. Removing the softmax is what makes the regrouping possible.</p>
-
+<!-- Demo 2: memory.py -->
+<section id="memory">
+  <h2>A fixed state instead of a growing cache</h2>
+  <p>Each token adds 256 numbers to the KV cache, while the state <i>S</i> stays one 128 × 128 square of 16,384. Drag to 100,000 tokens and the cache is 1,562 copies of <i>S</i>.</p>
   <div class="plate">
-    <svg class="wide-fig" viewBox="0 0 670 262" role="img" aria-labelledby="f3t">
-      <title id="f3t">Softmax attention keeps a growing cache; linear attention keeps one fixed matrix</title>
-      <text x="10" y="24">Softmax attention: the KV cache grows</text>
-      <g id="cache"></g>
-      <text x="10" y="158">Linear attention: one fixed state</text>
-      <g id="state"></g>
+    <div class="panels">
+      <div>
+        <canvas id="mem-cv" role="img" aria-label="The state S as a fixed square beside the KV cache, which grows with the token count"></canvas>
+        <div class="ctl">
+          <label for="mem-r">token count, 0 to 100,000</label>
+          <input id="mem-r" type="range" min="0" max="1000" step="1" value="0">
+          <span class="mu">jump to</span>
+          <button type="button" data-t="1">1</button>
+          <button type="button" data-t="64">64</button>
+          <button type="button" data-t="1000">1,000</button>
+          <button type="button" data-t="100000">100,000</button>
+          <button type="button" id="mem-play" aria-pressed="false">Play</button>
+        </div>
+      </div>
+      <div aria-live="polite">
+        <p>tokens: <b id="mem-t">0</b></p>
+        <p class="b">KV cache: <span id="mem-c">0</span> numbers</p>
+        <p class="o">S: 16,384 numbers</p>
+        <p>cache = <span id="mem-ratio">0.00</span> × <i>S</i></p>
+        <p>in bf16, <span id="mem-bytes" class="b">0 B</span> vs <span class="o">32.8 kB</span></p>
+      </div>
+    </div>
+  </div>
+  <p class="read" hidden>Read in the post: <a data-anchor="#§drop-the-softmax-and-you-get-an-rnn">Drop the Softmax and You Get an RNN</a></p>
+</section>
+
+<!-- Demo 3: crosstalk.py -->
+<section id="crosstalk">
+  <h2>Crosstalk</h2>
+  <p>Two pairs share one matrix, so reading with <i>k</i><sub>1</sub> returns <i>v</i><sub>1</sub> plus (<i>k</i><sub>1</sub>·<i>k</i><sub>2</sub>) times <i>v</i><sub>2</sub>. Tilt <i>k</i><sub>2</sub> toward <i>k</i><sub>1</sub> and watch <i>v</i><sub>2</sub> leak in.</p>
+  <div class="plate">
+    <p class="eq"><i>S</i> = <span class="o"><i>k</i><sub>1</sub><i>v</i><sub>1</sub><sup>T</sup></span> + <span class="b"><i>k</i><sub>2</sub><i>v</i><sub>2</sub><sup>T</sup></span></p>
+    <p class="eq"><i>S</i><sup>T</sup><i>k</i><sub>1</sub> = <span class="o"><i>v</i><sub>1</sub>(<i>k</i><sub>1</sub>·<i>k</i><sub>1</sub>)</span> + <span class="b"><i>v</i><sub>2</sub>(<i>k</i><sub>1</sub>·<i>k</i><sub>2</sub>)</span></p>
+    <p class="eq">= <span class="o"><i>v</i><sub>1</sub></span> <span id="ct-op">+</span> <span class="box b"><span id="ct-c">0.00</span> <i>v</i><sub>2</sub></span></p>
+    <div class="panels">
+      <div>
+        <svg id="ct-svg" viewBox="0 0 360 300" role="img" aria-labelledby="ct-svgt">
+          <title id="ct-svgt">Key k1 along the axis and key k2 at an angle you drag, with k2's projection onto k1</title>
+          <g id="ct-g"></g>
+          <circle id="ct-h" class="handle" r="25" cx="180" cy="65" fill="transparent" aria-hidden="true"></circle>
+        </svg>
+        <div class="ctl">
+          <label for="ct-r">angle between <i>k</i><sub>1</sub> and <i>k</i><sub>2</sub>: <b id="ct-rv">90°</b></label>
+          <input id="ct-r" type="range" min="0" max="180" step="1" value="90">
+          <button type="button" id="ct-45">45°</button>
+        </div>
+      </div>
+      <svg id="ct-bars" viewBox="0 0 360 300" role="img" aria-labelledby="ct-barst">
+        <title id="ct-barst">The four components of the read with k1: v1 in orange plus the leaked share of v2 in blue</title>
+        <g id="ct-bg"></g>
+      </svg>
+    </div>
+  </div>
+  <p class="read" hidden>Read in the post: <a data-anchor="#§the-running-sum-has-a-bug">The Running Sum Has a Bug</a></p>
+</section>
+
+<!-- Demo 4: sum_vs_delta.py -->
+<section id="sum-vs-delta">
+  <h2>Write the difference</h2>
+  <p><i>k</i> already holds <i>v</i><sub>1</sub>, and each press of Write stores <i>v</i><sub>2</sub> at <i>k</i> in both memories. The plain sum piles every write on top, while the delta rule closes a fraction β of the gap each time.</p>
+  <div class="plate">
+    <p class="eq b">plain sum: <i>S</i> ← <i>S</i> + <i>k v</i><sup>T</sup></p>
+    <p class="eq o">delta rule: <i>S</i> ← <i>S</i> + β <i>k</i> <span class="box">(<i>v</i> − <i>S</i><sup>T</sup><i>k</i>)</span><sup>T</sup></p>
+    <div class="panels">
+      <div>
+        <svg id="sd-svg" viewBox="0 0 360 300" role="img" aria-labelledby="sd-svgt">
+          <title id="sd-svgt">Read error after each write, on a log scale: plain sum in blue, delta rule in orange</title>
+          <g id="sd-g"></g>
+        </svg>
+        <div class="ctl">
+          <button type="button" class="write" id="sd-w">Write <i>v</i><sub>2</sub></button>
+          <button type="button" id="sd-reset">Reset</button>
+          <label for="sd-b"><span id="sd-bv">β = 0.5</span></label>
+          <input id="sd-b" class="ob" type="range" min="0.05" max="1" step="0.05" value="0.5">
+        </div>
+      </div>
+      <svg id="sd-bars" viewBox="0 0 360 300" role="img" aria-labelledby="sd-barst">
+        <title id="sd-barst">The delta rule's read at k, component by component, against the target v2</title>
+        <g id="sd-bg"></g>
+      </svg>
+    </div>
+  </div>
+  <p class="read" hidden>Read in the post: <a data-anchor="#§the-delta-rule-read-whats-stored-write-the-difference">The Delta Rule: Read What's Stored, Write the Difference</a></p>
+</section>
+
+<!-- Demo 5: dict_test.py -->
+<section id="dict-test">
+  <h2>300 overwrites</h2>
+  <p>300 random updates to 8 keys, scored on how far each key's read is from its latest value. The plain sum climbs to 6.19, and the delta rule at β = 1 holds at 0.19, the crosstalk between keys.</p>
+  <div class="plate">
+    <div class="strip"><span class="mu">dict</span><div class="chips" id="dt-chips"></div></div>
+    <p class="axt">error reading latest value</p>
+    <svg id="dt-svg" class="wide" viewBox="0 0 720 470" role="img" aria-labelledby="dt-svgt">
+      <title id="dt-svgt">Error reading each key's latest value over 300 updates: plain sum in blue, delta rule in orange</title>
+      <g id="dt-g"></g>
     </svg>
-  </div>
-  <p class="cap">Each new token adds one key and value to the cache. The state <span class="m">S</span> stays one <span class="m">d<sub>k</sub> × d<sub>v</sub></span> matrix, whatever the length.</p>
-
-  <p>The payoff is memory. With 128-dimensional keys and values, the KV cache adds 256 numbers per token per head, which is 25.6 million numbers at 100k tokens. The matrix state is 128 × 128 = 16,384 numbers per head, whatever the length. In bf16 (2 bytes), a 100k context shrinks from 51 MB to 33 kB per head, roughly 1,500 times smaller.</p>
-</section>
-
-<section id="bug">
-  <h2>The Running Sum Has a Bug</h2>
-  <p>Read the matrix with a stored, unit-length key and you get its value. Now write the same pair again. Every write adds, so you read back <span class="m"><span class="n">2</span>v</span>. Write it <span class="m">n</span> times and you get <span class="m">n·v</span>. When you do <code>dict[key] = value</code> twice in code, you expect <code>{key: value}</code>, not <code>{key: 2*value}</code>. The running sum never replaces anything: a new value for an old key reads back as "old plus new".</p>
-  <p>It gets worse once keys overlap. A matrix holds pairs cleanly only if their keys are perpendicular, and 128-dimensional keys only have 128 perpendicular directions, so 128 clean pairs at most. Past that, every read picks up a bit of the other values, in proportion to how similar their keys are. This is crosstalk. Softmax keeps every pair in its own slot, so nothing collides. Crosstalk is the price of a fixed-size matrix.</p>
-
-  <div class="plate">
-    <div class="two">
-      <svg viewBox="0 0 300 300" role="img" aria-labelledby="f2t">
-        <title id="f2t">Two stored keys in a 2-D key space</title>
-        <circle class="axis" cx="150" cy="150" r="110"/>
-        <line class="axis" x1="30" y1="150" x2="270" y2="150"/><line class="axis" x1="150" y1="30" x2="150" y2="270"/>
-        <g id="k1"><title>k1, also the read key</title><line x1="150" y1="150" x2="260" y2="150" stroke="#E69F00" stroke-width="5" stroke-linecap="round"/><text x="258" y="172" style="fill:#E69F00;font-style:italic">k<tspan font-size="10" dy="3">1</tspan></text></g>
-        <g id="k2g"><title>k2</title><line id="k2" x1="150" y1="150" x2="150" y2="40" stroke="#56B4E9" stroke-width="5" stroke-linecap="round"/><text id="k2l" x="154" y="34" style="fill:#56B4E9;font-style:italic">k<tspan font-size="10" dy="3">2</tspan></text></g>
-      </svg>
-      <div>
-        <label>Angle between <i>k</i><sub>1</sub> and <i>k</i><sub>2</sub>: <b id="angv">90°</b>
-          <input id="ang" class="q-in" type="range" min="0" max="180" value="90" aria-label="angle between keys"></label>
-        <p><i>k</i><sub>1</sub>·<i>k</i><sub>2</sub> = <b id="dotv">0.00</b></p>
-        <p class="muted">Reading with <i>k</i><sub>1</sub> returns</p>
-        <div class="row"><span class="lbl c-o"><i>v</i><sub>1</sub> × 1.00</span><span class="wide"><span class="bar" style="left:50%;width:50%;background:var(--primary)"></span></span></div>
-        <div class="row"><span class="lbl c-b">+ <i>v</i><sub>2</sub> × <span id="sharev">0.00</span></span><span class="wide"><span id="rd" class="bar" style="background:var(--secondary)"></span></span></div>
-      </div>
+    <p class="axt center">updates written</p>
+    <div class="ctl">
+      <label for="dt-r"><span id="dt-rv">update 0</span></label>
+      <input id="dt-r" type="range" min="0" max="300" step="1" value="0">
+      <button type="button" id="dt-play" aria-pressed="false">Play</button>
+      <div class="bgrp"><span class="mu" aria-hidden="true">β</span>
+      <div class="seg" role="group" aria-label="beta for the delta rule" id="dt-beta">
+        <button type="button" data-b="0.1" aria-pressed="false">0.1</button>
+        <button type="button" data-b="0.25" aria-pressed="false">0.25</button>
+        <button type="button" data-b="0.5" aria-pressed="false">0.5</button>
+        <button type="button" data-b="0.75" aria-pressed="false">0.75</button>
+        <button type="button" data-b="1.0" aria-pressed="true">1</button>
+      </div></div>
     </div>
   </div>
-  <p class="cap">Two pairs in one matrix. Reading with <span class="m">k<sub>1</sub></span> returns <span class="m">v<sub>1</sub></span> plus <span class="m">(k<sub>1</sub>·k<sub>2</sub>)</span> times <span class="m">v<sub>2</sub></span>, so the more <span class="m">k<sub>2</sub></span> leans toward <span class="m">k<sub>1</sub></span>, the more of <span class="m">v<sub>2</sub></span> leaks in (blue). Past 90° the dot product is negative and <span class="m">v<sub>2</sub></span> is subtracted instead.</p>
+  <p class="read" hidden>Read in the post: <a data-anchor="#§the-delta-rule-read-whats-stored-write-the-difference">The Delta Rule: Read What's Stored, Write the Difference</a></p>
 </section>
 
-<section id="delta">
-  <h2>The Delta Rule: Read What's Stored, Write the Difference</h2>
-  <p>Look before you write. Read what the memory currently holds at this key, <span class="m">S<sup class="t">T</sup>k</span>, and write only the difference between that and the new value:</p>
-  <p class="eqn">S ← S + β k (v − S<sup class="t">T</sup>k)<sup class="t">T</sup></p>
-  <p>With β = 1 and a unit-length key, reading afterwards gives exactly <span class="m">v</span>. Write the same pair twice and the difference is zero, so the second write does nothing. The "delta" in DeltaNet is that difference, <span class="m">v − S<sup class="t">T</sup>k</span>, which is an error term when the standard is "look up <span class="m">k</span>, get <span class="m">v</span> exactly".</p>
-  <p>Give the memory a tiny objective for this one token: make <span class="m">S<sup class="t">T</sup>k</span> equal <span class="m">v</span>. The loss is plain least squares, and its gradient points along the key, scaled by the error:</p>
-  <p class="eqn"><span>L = ½ ‖S<sup class="t">T</sup>k − v‖<sup class="n">2</sup>,</span>&ensp; <span>∇<sub>S</sub>L = k (S<sup class="t">T</sup>k − v)<sup class="t">T</sup></span></p>
-  <p>Take one gradient step with the write strength β as the learning rate, and each token's <span class="m">(k<sub>t</sub>, v<sub>t</sub>)</span> pair is written this way:</p>
-  <p class="eqn"><span>S<sub>t</sub> = S<sub>t−1</sub> − β<sub>t</sub> ∇<sub>S</sub>L</span> <span>= S<sub>t−1</sub> + β<sub>t</sub> k<sub>t</sub> (v<sub>t</sub> − S<sub>t−1</sub><sup class="t">T</sup>k<sub>t</sub>)<sup class="t">T</sup></span></p>
-  <p>That is the delta rule again, so each token is one gradient-descent step on the state <span class="m">S</span>. The trained <span class="m">W</span> matrices never change during inference, but they make every token's <span class="m">k</span>, <span class="m">v</span> and β, so they set what gets written and how strongly. The current <span class="m">S</span> matters too, because the update only stores the error <span class="m">v − S<sup class="t">T</sup>k</span>. <span class="m">S</span> starts at zero for each sequence, so the first write of a pair goes in full. If the same pair shows up later, the write is only a correction. That's why the papers call <span class="m">S</span> "fast weights" (the <span class="m">W</span> matrices are the fixed, slow ones) and talk about "test-time training".</p>
-  <p>β is between 0 and 1, and the model makes it fresh for every token from that token's embedding, like <span class="m">q</span>, <span class="m">k</span> and <span class="m">v</span>. It's a write strength: β = 1 overwrites, β = 0.1 nudges the stored value 10% of the way.</p>
-
-  <div class="plate">
-    <div class="row">
-      <button type="button" id="wr">Write <i>v</i><sub>2</sub> to <i>k</i></button>
-      <button type="button" id="rs">Reset</button>
-      <label class="row" style="margin:0">β <input id="beta" class="o-in" type="range" min="0.1" max="1" step="0.1" value="0.5" aria-label="beta" style="width:110px"><b id="bv">0.5</b></label>
-      <span>writes: <b id="nw">0</b></span>
-    </div>
-    <div class="row"><span class="lbl c-b">plain sum</span><span class="wide"><span id="rl" class="bar" style="left:0;background:var(--secondary)"></span></span><span id="ml" class="muted"></span></div>
-    <div class="row"><span class="lbl c-o">delta rule</span><span class="wide"><span id="rdl" class="bar" style="left:0;background:var(--primary)"></span></span><span id="md" class="muted"></span></div>
-    <p class="muted" style="margin:8px 0 0">Bars show the read error <span class="m">‖S<sup class="t">T</sup>k − v<sub>2</sub>‖</span>, with <span class="m">k</span>, <span class="m">v<sub>1</sub></span> and <span class="m">v<sub>2</sub></span> unit length and <span class="m">v<sub>1</sub></span>, <span class="m">v<sub>2</sub></span> perpendicular. The scale ends at 10.</p>
-  </div>
-  <p class="cap"><span class="m">k</span> already holds <span class="m">v<sub>1</sub></span>. Each click writes <span class="m">v<sub>2</sub></span> to it in both memories. The plain sum's read drifts to <span class="m">v<sub>1</sub> + n·v<sub>2</sub></span>, while the delta rule shrinks its error by a factor of (1 − β) every write and lands on <span class="m">v<sub>2</sub></span>.</p>
-
-  <p>The papers print the same rule grouped by <span class="m">S</span>:</p>
-  <p class="eqn"><span>S<sub>t</sub> = (I − β<sub>t</sub> k<sub>t</sub> k<sub>t</sub><sup class="t">T</sup>) S<sub>t−1</sub></span> <span>+ β<sub>t</sub> k<sub>t</sub> v<sub>t</sub><sup class="t">T</sup></span></p>
-  <p>The first part erases state built up previously: it shrinks whatever is stored along <span class="m">k</span> by a fraction β and leaves everything perpendicular alone. The second part writes the new value at <span class="m">k</span>. Together, the two parts make the read at <span class="m">k</span> a moving average: (1 − β) of the old value plus β of the new one. One β controls both, which matters later.</p>
-</section>
-
-<section id="next">
-  <h2>What's Next</h2>
-  <p>The delta rule only forgets along keys that get rewritten. Gated DeltaNet adds a forget gate that shrinks the whole state a little at every step, much like an LSTM's forget gate. <a href="https://arxiv.org/abs/2510.26692">Kimi Linear</a> makes that decay per channel, and <a href="https://arxiv.org/abs/2605.22791">Gated DeltaNet-2</a> gives erasing and writing their own knobs. Part two covers them.</p>
-</section>
+<footer>
+  <p>The reference code is <code>deltanet.py</code> in the <a href="https://github.com/joshuahaddad/deltanet-explained">companion repo</a>.
+  <a href="https://arxiv.org/abs/2406.06484">DeltaNet paper</a> (Yang et al., 2024).</p>
+  <p>The post builds on <a href="https://arxiv.org/abs/2510.26692">Kimi Linear</a> and <a href="https://arxiv.org/abs/2605.22791">Gated DeltaNet-2</a>.</p>
+</footer>
 
 </main>
 <script>
-  const ORANGE = '#E69F00';
-  const rad = d => d * Math.PI / 180, cx = 150, cy = 150, R = 110;
-  const $ = id => document.getElementById(id);
-  const fmt = x => x.toFixed(2).replace('-', '−'); // typographic minus
+'use strict';
+// dict_test curves, written by make_dict_test_json.py (same RNG order as animations/dict_test.py).
+const DICT = {"idx":[4,7,7,2,7,5,3,7,7,4,5,5,2,1,4,6,7,2,4,1,2,0,2,5,7,5,7,7,6,3,6,5,6,6,1,7,7,5,6,3,1,4,4,7,1,0,2,6,2,7,5,6,3,6,0,2,1,2,4,0,6,0,2,6,2,6,1,1,2,4,6,2,1,7,1,2,0,1,3,6,6,7,3,7,3,0,4,4,5,7,6,1,5,4,0,0,7,0,6,1,1,1,6,5,2,5,2,0,7,2,4,4,3,2,7,6,7,7,1,2,1,4,3,1,7,1,6,1,2,3,0,6,6,5,4,7,3,5,5,3,1,5,1,4,6,7,4,0,6,1,6,1,4,0,1,6,7,1,3,3,2,0,7,2,2,3,0,7,5,7,5,7,2,7,2,0,7,5,4,4,1,2,4,4,3,7,7,3,0,6,4,7,2,1,6,5,3,0,1,4,4,6,7,3,7,5,0,6,5,0,4,0,4,2,3,1,3,6,1,7,4,7,6,5,6,3,5,2,7,7,0,3,3,6,1,6,6,0,3,7,6,7,1,4,6,7,5,6,4,0,3,0,3,5,0,6,2,2,2,2,2,2,6,4,0,2,4,3,4,0,2,5,7,4,3,5,4,0,3,0,6,0,1,6,3,5,6,0,3,4,4,7,3,1,1,0,7,5,4,7],"sum":[0.0,0.021,0.488,0.373,0.583,0.479,0.478,0.572,0.615,0.763,0.969,1.016,1.202,1.075,1.165,1.028,1.072,1.105,1.109,1.169,1.22,1.117,1.137,1.174,1.211,1.265,1.233,1.269,1.386,1.47,1.493,1.494,1.547,1.599,1.651,1.678,1.77,1.815,1.866,1.916,1.935,1.995,2.028,2.089,2.137,2.225,2.266,2.268,2.234,2.234,2.246,2.256,2.274,2.348,2.385,2.478,2.549,2.509,2.516,2.547,2.523,2.543,2.571,2.608,2.638,2.687,2.668,2.703,2.789,2.799,2.818,2.823,2.808,2.808,2.922,2.918,2.977,2.954,3.021,3.046,3.115,3.138,3.186,3.183,3.221,3.225,3.286,3.293,3.302,3.389,3.401,3.392,3.42,3.454,3.477,3.503,3.418,3.467,3.446,3.567,3.464,3.546,3.554,3.531,3.511,3.634,3.689,3.698,3.77,3.827,3.858,3.92,3.899,3.895,3.902,3.919,3.936,3.995,3.962,4.027,4.106,4.092,4.135,4.08,4.057,4.064,4.005,4.039,3.991,4.017,4.07,4.138,4.148,4.097,4.201,4.272,4.265,4.396,4.399,4.396,4.371,4.367,4.417,4.343,4.354,4.282,4.348,4.347,4.404,4.547,4.492,4.383,4.38,4.38,4.388,4.467,4.533,4.555,4.558,4.572,4.635,4.604,4.66,4.725,4.695,4.728,4.837,4.766,4.757,4.837,4.848,4.879,4.872,4.883,4.936,4.961,4.92,4.935,4.978,4.974,5.049,5.064,5.08,5.011,5.042,5.046,5.089,5.179,5.274,5.225,5.303,5.384,5.339,5.3,5.305,5.321,5.339,5.272,5.251,5.231,5.253,5.339,5.274,5.225,5.29,5.364,5.375,5.374,5.338,5.306,5.406,5.512,5.434,5.513,5.539,5.649,5.587,5.621,5.554,5.461,5.509,5.51,5.467,5.488,5.481,5.513,5.489,5.409,5.459,5.473,5.554,5.621,5.64,5.657,5.722,5.84,5.685,5.541,5.598,5.642,5.74,5.666,5.626,5.654,5.673,5.692,5.757,5.751,5.744,5.729,5.693,5.725,5.708,5.71,5.748,5.706,5.707,5.761,5.647,5.765,5.701,5.778,5.756,5.816,5.783,5.838,5.753,5.769,5.875,5.926,5.886,5.836,5.967,6.087,6.119,6.092,6.102,6.062,6.012,6.064,6.141,6.122,6.095,6.016,6.086,6.184,6.273,6.378,6.353,6.243,6.317,6.168,6.183,6.228,6.261,6.11,6.11,6.088,6.124,6.187],"delta":{"0.1":[0.9,0.9,0.901,0.901,0.901,0.901,0.901,0.906,0.9,0.902,0.905,0.904,0.907,0.906,0.909,0.907,0.91,0.91,0.908,0.909,0.909,0.908,0.912,0.914,0.918,0.916,0.912,0.908,0.91,0.908,0.907,0.907,0.908,0.908,0.909,0.91,0.91,0.911,0.909,0.91,0.909,0.909,0.913,0.917,0.917,0.918,0.919,0.922,0.918,0.92,0.919,0.917,0.916,0.919,0.918,0.922,0.921,0.916,0.911,0.911,0.911,0.914,0.912,0.912,0.913,0.913,0.915,0.916,0.916,0.918,0.918,0.921,0.918,0.917,0.923,0.924,0.921,0.921,0.926,0.921,0.928,0.926,0.923,0.927,0.927,0.928,0.924,0.93,0.932,0.928,0.927,0.92,0.917,0.914,0.912,0.909,0.911,0.915,0.916,0.924,0.923,0.923,0.924,0.925,0.921,0.915,0.92,0.92,0.916,0.918,0.92,0.917,0.919,0.915,0.921,0.922,0.92,0.918,0.916,0.917,0.918,0.919,0.918,0.915,0.917,0.917,0.912,0.911,0.908,0.905,0.908,0.916,0.913,0.914,0.918,0.922,0.925,0.927,0.929,0.93,0.929,0.928,0.933,0.93,0.927,0.924,0.926,0.925,0.923,0.921,0.923,0.926,0.926,0.925,0.921,0.921,0.92,0.922,0.919,0.921,0.923,0.921,0.917,0.918,0.915,0.914,0.916,0.92,0.922,0.918,0.915,0.922,0.923,0.919,0.925,0.921,0.92,0.917,0.915,0.916,0.916,0.91,0.911,0.909,0.906,0.909,0.913,0.921,0.929,0.928,0.928,0.926,0.932,0.934,0.937,0.943,0.94,0.938,0.937,0.937,0.932,0.929,0.928,0.928,0.93,0.926,0.923,0.924,0.923,0.92,0.927,0.924,0.921,0.915,0.921,0.921,0.915,0.914,0.92,0.918,0.914,0.912,0.916,0.92,0.919,0.918,0.916,0.918,0.919,0.924,0.931,0.934,0.931,0.931,0.929,0.935,0.928,0.93,0.93,0.921,0.922,0.928,0.922,0.926,0.926,0.924,0.928,0.93,0.929,0.923,0.923,0.925,0.927,0.925,0.929,0.926,0.925,0.926,0.923,0.925,0.926,0.923,0.921,0.925,0.921,0.925,0.922,0.924,0.923,0.917,0.916,0.917,0.92,0.923,0.917,0.916,0.919,0.921,0.924,0.931,0.932,0.923,0.923,0.921,0.922,0.918,0.919,0.927,0.925,0.921,0.921,0.922,0.926,0.927,0.925,0.921,0.921,0.92,0.921,0.918],"0.25":[0.75,0.75,0.759,0.757,0.761,0.758,0.759,0.769,0.758,0.765,0.774,0.772,0.779,0.776,0.783,0.778,0.78,0.779,0.775,0.777,0.776,0.775,0.781,0.785,0.791,0.788,0.784,0.778,0.784,0.781,0.779,0.779,0.782,0.782,0.785,0.787,0.787,0.79,0.787,0.79,0.788,0.788,0.796,0.801,0.8,0.805,0.808,0.809,0.802,0.805,0.803,0.801,0.799,0.803,0.804,0.81,0.809,0.8,0.79,0.789,0.79,0.792,0.791,0.791,0.791,0.789,0.792,0.793,0.796,0.801,0.805,0.808,0.804,0.803,0.815,0.814,0.81,0.804,0.813,0.805,0.814,0.81,0.805,0.812,0.811,0.813,0.807,0.815,0.817,0.812,0.815,0.809,0.808,0.803,0.799,0.796,0.797,0.806,0.803,0.812,0.809,0.812,0.815,0.816,0.81,0.802,0.808,0.805,0.8,0.802,0.805,0.799,0.803,0.797,0.805,0.804,0.803,0.802,0.796,0.796,0.799,0.798,0.793,0.791,0.791,0.79,0.785,0.788,0.787,0.785,0.789,0.799,0.795,0.797,0.805,0.808,0.815,0.818,0.82,0.82,0.819,0.815,0.82,0.813,0.807,0.805,0.809,0.805,0.808,0.804,0.806,0.807,0.806,0.807,0.803,0.802,0.801,0.802,0.798,0.805,0.803,0.799,0.798,0.804,0.799,0.796,0.8,0.804,0.807,0.801,0.797,0.806,0.808,0.801,0.81,0.805,0.805,0.801,0.8,0.801,0.796,0.786,0.782,0.783,0.779,0.781,0.783,0.795,0.804,0.803,0.805,0.805,0.814,0.819,0.824,0.832,0.828,0.823,0.819,0.819,0.814,0.81,0.81,0.808,0.808,0.803,0.799,0.801,0.798,0.793,0.804,0.804,0.796,0.79,0.8,0.806,0.8,0.799,0.802,0.801,0.8,0.795,0.799,0.803,0.799,0.796,0.795,0.795,0.796,0.805,0.813,0.821,0.816,0.816,0.813,0.821,0.813,0.812,0.811,0.802,0.806,0.811,0.804,0.806,0.803,0.8,0.804,0.806,0.805,0.799,0.797,0.801,0.802,0.799,0.803,0.805,0.801,0.804,0.798,0.806,0.806,0.8,0.796,0.8,0.793,0.802,0.8,0.806,0.807,0.803,0.802,0.801,0.809,0.812,0.802,0.801,0.8,0.8,0.806,0.818,0.819,0.803,0.804,0.8,0.8,0.797,0.801,0.815,0.81,0.804,0.807,0.802,0.81,0.811,0.81,0.801,0.803,0.802,0.803,0.803],"0.5":[0.5,0.5,0.524,0.519,0.527,0.522,0.526,0.536,0.523,0.536,0.554,0.548,0.564,0.557,0.567,0.557,0.557,0.553,0.546,0.551,0.55,0.548,0.554,0.557,0.565,0.563,0.563,0.557,0.568,0.566,0.563,0.565,0.569,0.569,0.573,0.573,0.576,0.58,0.575,0.577,0.575,0.577,0.585,0.59,0.588,0.599,0.601,0.598,0.59,0.593,0.588,0.588,0.587,0.591,0.593,0.6,0.597,0.588,0.578,0.574,0.575,0.575,0.575,0.576,0.576,0.572,0.574,0.575,0.579,0.586,0.594,0.597,0.594,0.593,0.603,0.601,0.597,0.589,0.597,0.591,0.596,0.593,0.589,0.597,0.597,0.597,0.591,0.599,0.597,0.592,0.599,0.599,0.603,0.598,0.593,0.591,0.591,0.601,0.592,0.595,0.593,0.599,0.606,0.605,0.598,0.592,0.601,0.596,0.595,0.596,0.599,0.595,0.599,0.594,0.598,0.595,0.596,0.595,0.585,0.586,0.59,0.587,0.579,0.577,0.579,0.578,0.578,0.582,0.584,0.583,0.583,0.594,0.589,0.584,0.595,0.596,0.602,0.608,0.61,0.608,0.606,0.601,0.605,0.594,0.588,0.587,0.596,0.593,0.598,0.593,0.596,0.594,0.591,0.591,0.593,0.592,0.59,0.588,0.588,0.594,0.587,0.586,0.589,0.6,0.594,0.59,0.597,0.597,0.598,0.594,0.594,0.602,0.602,0.596,0.606,0.597,0.597,0.592,0.591,0.593,0.585,0.575,0.568,0.573,0.568,0.567,0.568,0.583,0.593,0.59,0.592,0.595,0.603,0.607,0.611,0.615,0.612,0.605,0.603,0.604,0.601,0.596,0.596,0.594,0.593,0.59,0.585,0.587,0.584,0.581,0.59,0.593,0.584,0.581,0.588,0.595,0.595,0.595,0.593,0.59,0.595,0.591,0.594,0.592,0.587,0.585,0.586,0.582,0.583,0.59,0.591,0.599,0.594,0.599,0.598,0.605,0.597,0.595,0.596,0.589,0.597,0.601,0.591,0.589,0.584,0.585,0.589,0.59,0.59,0.588,0.582,0.587,0.589,0.585,0.587,0.591,0.583,0.588,0.581,0.593,0.589,0.585,0.579,0.583,0.576,0.581,0.58,0.587,0.593,0.594,0.593,0.59,0.596,0.598,0.588,0.588,0.587,0.583,0.59,0.603,0.602,0.586,0.585,0.583,0.584,0.582,0.587,0.6,0.597,0.59,0.595,0.587,0.596,0.6,0.597,0.589,0.593,0.588,0.591,0.591],"0.75":[0.25,0.25,0.276,0.273,0.281,0.278,0.295,0.3,0.293,0.307,0.322,0.318,0.334,0.328,0.334,0.324,0.324,0.32,0.317,0.321,0.319,0.322,0.326,0.328,0.334,0.333,0.335,0.334,0.344,0.342,0.341,0.344,0.347,0.348,0.349,0.348,0.352,0.356,0.35,0.347,0.345,0.348,0.355,0.358,0.355,0.369,0.369,0.362,0.359,0.361,0.357,0.357,0.357,0.36,0.36,0.367,0.362,0.353,0.349,0.348,0.348,0.347,0.347,0.35,0.352,0.347,0.348,0.35,0.351,0.358,0.366,0.367,0.362,0.363,0.365,0.365,0.362,0.36,0.362,0.362,0.363,0.361,0.361,0.367,0.367,0.364,0.361,0.367,0.365,0.361,0.366,0.369,0.376,0.372,0.369,0.37,0.367,0.375,0.365,0.363,0.365,0.37,0.378,0.374,0.369,0.365,0.374,0.372,0.373,0.375,0.376,0.376,0.38,0.375,0.376,0.372,0.374,0.373,0.363,0.364,0.366,0.362,0.357,0.357,0.358,0.359,0.362,0.366,0.369,0.364,0.36,0.37,0.367,0.358,0.365,0.365,0.366,0.373,0.376,0.376,0.375,0.368,0.373,0.362,0.358,0.358,0.365,0.363,0.365,0.361,0.367,0.366,0.364,0.361,0.365,0.364,0.364,0.359,0.362,0.367,0.36,0.364,0.366,0.375,0.372,0.369,0.372,0.372,0.372,0.371,0.371,0.374,0.373,0.371,0.38,0.369,0.367,0.364,0.362,0.364,0.358,0.354,0.348,0.353,0.348,0.346,0.348,0.362,0.37,0.365,0.367,0.368,0.372,0.372,0.375,0.377,0.378,0.369,0.372,0.374,0.373,0.368,0.366,0.364,0.364,0.362,0.357,0.359,0.357,0.358,0.361,0.365,0.359,0.358,0.361,0.369,0.374,0.374,0.372,0.366,0.373,0.372,0.374,0.364,0.362,0.365,0.368,0.359,0.359,0.362,0.355,0.356,0.357,0.365,0.368,0.371,0.366,0.365,0.365,0.359,0.368,0.372,0.36,0.357,0.351,0.358,0.363,0.365,0.366,0.366,0.358,0.363,0.367,0.362,0.367,0.368,0.358,0.36,0.355,0.366,0.363,0.358,0.354,0.355,0.351,0.351,0.352,0.356,0.364,0.367,0.367,0.362,0.363,0.363,0.356,0.361,0.362,0.357,0.361,0.369,0.367,0.355,0.35,0.352,0.354,0.352,0.355,0.364,0.363,0.356,0.361,0.357,0.365,0.373,0.368,0.366,0.369,0.359,0.361,0.36],"1.0":[0.0,0.012,0.013,0.038,0.045,0.062,0.112,0.109,0.107,0.12,0.122,0.13,0.138,0.147,0.152,0.139,0.14,0.142,0.149,0.148,0.149,0.165,0.171,0.183,0.174,0.169,0.172,0.171,0.183,0.174,0.179,0.192,0.192,0.188,0.191,0.197,0.195,0.19,0.189,0.185,0.182,0.187,0.197,0.19,0.193,0.207,0.206,0.2,0.201,0.193,0.194,0.197,0.194,0.192,0.191,0.189,0.192,0.192,0.191,0.201,0.204,0.208,0.201,0.202,0.198,0.196,0.186,0.185,0.185,0.184,0.181,0.185,0.184,0.182,0.186,0.188,0.2,0.2,0.2,0.193,0.19,0.184,0.176,0.179,0.18,0.178,0.191,0.193,0.195,0.194,0.184,0.195,0.201,0.196,0.21,0.205,0.189,0.199,0.194,0.195,0.208,0.201,0.206,0.215,0.211,0.197,0.205,0.204,0.195,0.202,0.201,0.196,0.205,0.201,0.203,0.196,0.196,0.197,0.2,0.198,0.186,0.184,0.182,0.182,0.185,0.184,0.188,0.19,0.194,0.19,0.192,0.208,0.204,0.206,0.193,0.18,0.185,0.19,0.193,0.204,0.204,0.2,0.21,0.194,0.188,0.185,0.182,0.196,0.197,0.192,0.198,0.205,0.198,0.21,0.213,0.203,0.198,0.201,0.198,0.205,0.2,0.206,0.189,0.193,0.197,0.195,0.187,0.184,0.201,0.199,0.193,0.192,0.184,0.185,0.19,0.184,0.18,0.188,0.18,0.182,0.19,0.185,0.185,0.192,0.197,0.188,0.19,0.193,0.185,0.195,0.19,0.191,0.194,0.197,0.199,0.215,0.211,0.191,0.199,0.201,0.201,0.185,0.179,0.18,0.179,0.194,0.194,0.2,0.194,0.192,0.191,0.187,0.192,0.187,0.197,0.211,0.215,0.211,0.216,0.208,0.201,0.199,0.197,0.19,0.191,0.207,0.207,0.2,0.195,0.198,0.174,0.171,0.168,0.186,0.196,0.192,0.199,0.197,0.188,0.174,0.188,0.188,0.182,0.175,0.167,0.172,0.19,0.192,0.188,0.206,0.196,0.196,0.193,0.197,0.202,0.204,0.19,0.187,0.188,0.192,0.192,0.187,0.182,0.171,0.185,0.185,0.191,0.199,0.198,0.199,0.193,0.191,0.19,0.181,0.188,0.211,0.196,0.2,0.198,0.198,0.2,0.2,0.201,0.195,0.194,0.211,0.209,0.218,0.206,0.209,0.213,0.199,0.199,0.217,0.206,0.211,0.203,0.202,0.189,0.19]}};
 
-  // Soft lookup. shortcut: hand-picked 2-D toy keys, fine for an illustration
-  const toks = [{ name: 'The', ang: 200 }, { name: 'cat', ang: 30 }, { name: 'sat', ang: 110 }, { name: 'mat', ang: 300 }];
-  const SCALE = 3; // sharpens softmax so unit-length 2-D keys still give a visible preference
-  const g = $('keys');
-  for (const t of toks) {
-    const x = cx + R * Math.cos(rad(t.ang)), y = cy - R * Math.sin(rad(t.ang));
-    g.insertAdjacentHTML('beforeend', `<g id="key-${t.name}"><title>key of "${t.name}"</title><line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="${ORANGE}" stroke-width="5" stroke-linecap="round"/><text x="${cx + (R + 18) * Math.cos(rad(t.ang)) - 12}" y="${cy - (R + 18) * Math.sin(rad(t.ang)) + 4}">${t.name}</text></g>`);
-  }
-  const phi = $('phi');
-  function draw() {
-    const a = +phi.value;
-    const q = $('q'); q.setAttribute('x2', cx + R * Math.cos(rad(a))); q.setAttribute('y2', cy - R * Math.sin(rad(a)));
-    const ql = $('qlabel'); ql.setAttribute('x', cx + (R + 14) * Math.cos(rad(a)) - 4); ql.setAttribute('y', cy - (R + 14) * Math.sin(rad(a)) + 4);
-    const s = toks.map(t => Math.cos(rad(a - t.ang)));
-    const e = s.map(v => Math.exp(SCALE * v)), Z = e.reduce((p, v) => p + v, 0), w = e.map(v => v / Z);
-    $('tbl').innerHTML = toks.map((t, i) => `<tr><td>${t.name}</td><td>${fmt(s[i])}</td><td><span class="track"><span class="bar" style="left:0;width:${(w[i] * 100).toFixed(0)}%;background:#56B4E9"></span></span> ${(w[i] * 100).toFixed(0)}%</td></tr>`).join('');
-    const top = w.indexOf(Math.max(...w));
-    $('out').textContent = `Output: a blend of the four values, ${(w[top] * 100).toFixed(0)}% from "${toks[top].name}".`;
-  }
-  phi.addEventListener('input', draw); draw();
+const C = { bg: '#16141C', surface: '#211E29', rule: '#2E2A38', muted: '#8A8696', ink: '#ECEAF0',
+  o: '#E69F00', b: '#56B4E9', plum: '#CC79A7', t: '#8FE8BE', e: '#F2795A' };
+const $ = id => document.getElementById(id);
+const minus = s => s.replace(/-/g, '−');
+const f2 = x => minus((Math.abs(x) < 0.005 ? 0 : x).toFixed(2));
+const fg = x => minus(String(+x.toFixed(2)));               // g-style: 1, 0.5, −1.25
+const fw = x => x >= 0.995 ? '1' : x.toFixed(2).replace(/^0/, ''); // weights as in the GIF: .70
+const nf = x => x.toLocaleString('en-US');
+const norm = v => Math.hypot(...v);
+// after: the text that follows, which carries the baseline reset (an empty tspan would drop it)
+const sub = (l, n, after = '') => `<tspan font-style="italic">${l}</tspan><tspan dy="5" font-size="70%">${n}</tspan><tspan dy="-5">${after}</tspan>`;
 
-  // Growing cache vs fixed state, at four time points
-  let cache = '', state = '';
-  [1, 2, 4, 8].forEach((n, i) => {
-    const x = 10 + i * 160;
-    for (let j = 0; j < n; j++) cache += `<rect x="${x + (j % 4) * 26}" y="${40 + Math.floor(j / 4) * 30}" width="22" height="24" rx="3" fill="${ORANGE}"><title>one cached key and value</title></rect>`;
-    cache += `<text x="${x}" y="122" class="sub">t = ${n}: ${n} pair${n > 1 ? 's' : ''}</text>`;
-    state += `<rect x="${x}" y="172" width="56" height="56" rx="4" fill="${ORANGE}"><title>the state S, same size at every step</title></rect><text x="${x}" y="254" class="sub">t = ${n}: one S</text>`;
+// Tweens: 300 ms easeOutCubic (STYLE.md SNAPPY), none under reduced motion.
+const RM = matchMedia('(prefers-reduced-motion: reduce)');
+const tweens = {};
+function tween(key, from, to, fn, ms = 300) {
+  cancelAnimationFrame(tweens[key]);
+  if (RM.matches) { fn(to); return; }
+  const t0 = performance.now();
+  const step = now => {
+    const p = Math.min(1, (now - t0) / ms);
+    fn(p === 1 ? to : from + (to - from) * (1 - (1 - p) ** 3));
+    if (p < 1) tweens[key] = requestAnimationFrame(step);
+  };
+  tweens[key] = requestAnimationFrame(step);
+}
+const stopTween = key => cancelAnimationFrame(tweens[key]);
+
+function svgPt(svg, e) {
+  const p = svg.createSVGPoint(); p.x = e.clientX; p.y = e.clientY;
+  return p.matrixTransform(svg.getScreenCTM().inverse());
+}
+// Drag a handle with pointer capture; onMove gets the pointer in viewBox units.
+function draggable(h, svg, onMove, onStart = () => {}) {
+  h.addEventListener('pointerdown', e => { h.setPointerCapture(e.pointerId); e.preventDefault(); onStart(); onMove(svgPt(svg, e)); });
+  h.addEventListener('pointermove', e => { if (h.hasPointerCapture(e.pointerId)) onMove(svgPt(svg, e)); });
+}
+function arrow(x1, y1, x2, y2, col, w) {
+  const dx = x2 - x1, dy = y2 - y1, L = Math.hypot(dx, dy);
+  if (L < 1) return '';
+  const h = Math.min(L, 9 + 1.6 * w), ux = dx / L, uy = dy / L, bx = x2 - ux * h, by = y2 - uy * h, hw = h * 0.5;
+  return `<line x1="${x1}" y1="${y1}" x2="${bx}" y2="${by}" stroke="${col}" stroke-width="${w}"/>` +
+    `<polygon points="${x2},${y2} ${bx - uy * hw},${by + ux * hw} ${bx + uy * hw},${by - ux * hw}" fill="${col}"/>`;
+}
+function softmax(s) {
+  const m = Math.max(...s), e = s.map(x => Math.exp(x - m)), Z = e.reduce((a, b) => a + b, 0);
+  return e.map(x => x / Z);
+}
+function setPressed(group, btn) { group.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b === btn))); }
+
+/* ---------- Demo 1: lookup ---------- */
+const LK = { toks: ['my', 'cat', 'sat', 'on', 'a', 'mat'], K: [[0, 1], [2, 1], [1, 0], [-1, 0], [0, -1], [1, 2]],
+  Q: { dict: [2, 1], attn: [1, 0.5], next: [0.5, 1] },
+  title: { dict: 'dict: exact match', attn: 'attention: soft match', next: 'generating: newest token reads the cache' } };
+let lkStage = 'dict', lkQ = [2, 1], lkTagUntil = 0;
+const lkX = u => 180 + 60 * u, lkY = u => 180 - 60 * u;
+function lkState() {
+  const n = lkStage === 'next' ? 6 : 5, keys = LK.K.slice(0, n);
+  const s = keys.map(k => k[0] * lkQ[0] + k[1] * lkQ[1]);
+  if (lkStage !== 'dict') return { n, keys, s, w: softmax(s), hit: -1 };
+  const hit = keys.findIndex(k => Math.hypot(k[0] - lkQ[0], k[1] - lkQ[1]) < 0.2);
+  return { n, keys, s, w: hit < 0 ? null : keys.map((_, i) => +(i === hit)), hit };
+}
+function lkRender() {
+  const { n, keys, s, w, hit } = lkState(), dict = lkStage === 'dict', asker = dict ? -1 : n - 1;
+  let g = '';
+  for (let i = -3; i <= 3; i++) {
+    const sw = i === 0 ? 2 : 1;
+    g += `<line x1="${lkX(i)}" y1="0" x2="${lkX(i)}" y2="360" stroke="${C.rule}" stroke-width="${sw}"/><line x1="0" y1="${lkY(i)}" x2="360" y2="${lkY(i)}" stroke="${C.rule}" stroke-width="${sw}"/>`;
+  }
+  keys.forEach((k, i) => {
+    const col = i === 5 ? C.o : C.ink, L = Math.hypot(...k), wi = w ? w[i] : 0;
+    g += arrow(180, 180, lkX(k[0]), lkY(k[1]), col, 2 + 6 * wi);
+    g += `<text x="${lkX(k[0] + 0.36 * k[0] / L)}" y="${lkY(k[1] + 0.36 * k[1] / L)}" dy=".35em" text-anchor="middle" fill="${col}" style="fill:${col}">${LK.toks[i]}</text>`;
   });
-  $('cache').innerHTML = cache;
-  $('state').innerHTML = state;
+  const qx = lkX(lkQ[0]), qy = lkY(lkQ[1]);
+  g += arrow(180, 180, qx, qy, C.b, 5) + `<circle cx="${qx}" cy="${qy}" r="7" fill="${C.b}"/>`;
+  $('lk-g').innerHTML = g;
+  const h = $('lk-h'); h.setAttribute('cx', qx); h.setAttribute('cy', qy);
+  const qtxt = `q = [${fg(lkQ[0])}, ${fg(lkQ[1])}]`;
+  h.setAttribute('aria-valuenow', lkQ[0]); h.setAttribute('aria-valuetext', qtxt);
+  $('lk-q').textContent = qtxt;
+  $('lk-title').textContent = LK.title[lkStage];
+  $('lk-mem').textContent = dict && hit >= 0 ? `memory["${LK.toks[hit]}"]` : '';
 
-  // Crosstalk: read = v1 + cos(theta) * v2
-  const ang = $('ang');
-  function draw2() {
-    const t = +ang.value, c = Math.cos(rad(t));
-    const k2 = $('k2'); k2.setAttribute('x2', cx + R * Math.cos(rad(t))); k2.setAttribute('y2', cy - R * Math.sin(rad(t)));
-    const l = $('k2l'); l.setAttribute('x', cx + (R + 14) * Math.cos(rad(t)) - 6); l.setAttribute('y', cy - (R + 14) * Math.sin(rad(t)) + 4);
-    $('angv').textContent = t + '°';
-    $('dotv').textContent = fmt(c);
-    $('sharev').textContent = fmt(c);
-    // signed bar about the middle: right adds v2, left subtracts it
-    const bar = $('rd'); bar.style.width = Math.abs(c) * 50 + '%'; bar.style.left = (c >= 0 ? 50 : 50 + c * 50) + '%';
+  $('lk-tb').innerHTML = keys.map((k, i) => {
+    const kc = i === 5 ? ' class="o"' : '', name = i === asker ? ' class="b"' : '';
+    const wcell = !w ? '' : `<div class="wcell"><span class="wbar"><span style="width:${(w[i] * 100).toFixed(1)}%"></span></span><span class="wn${dict && !w[i] ? ' mu' : ''}">${dict ? w[i] : fw(w[i])}</span></div>`;
+    return `<tr data-i="${i}" tabindex="0" aria-label="set q to the key of ${LK.toks[i]}"${i === hit ? ' class="hit"' : ''}><td${name}>${LK.toks[i]}</td><td${kc}>[${k.map(fg).join(', ')}]</td><td${kc}><i>v</i><sub>${i + 1}</sub></td><td class="b">${dict ? '' : fg(s[i])}</td><td>${wcell}</td></tr>`;
+  }).join('');
+  $('lk-cache').innerHTML = `KV cache: ${n} tokens` + (performance.now() < lkTagUntil ? '<span class="o tag">+1 <i>k</i>, <i>v</i></span>' : '');
+  if (dict) {
+    $('lk-out').innerHTML = hit >= 0 ? `memory["${LK.toks[hit]}"] → <i>v</i><sub>${hit + 1}</sub>` : '<span class="e">KeyError ✗</span>';
+    $('lk-out2').textContent = '';
+  } else {
+    const top = w.map((x, i) => [x, i]).sort((a, b) => b[0] - a[0]).slice(0, 3);
+    $('lk-out').innerHTML = 'o = ' + top.map(([x, i]) => `${fw(x)} <i>v</i><sub>${i + 1}</sub>`).join(' + ') + ' + …';
+    $('lk-out2').textContent = 'all > 0, sum = 1';
   }
-  ang.addEventListener('input', draw2); draw2();
+}
+function lkSetQ(q, snap = true) {
+  q = q.map(x => Math.max(-2.5, Math.min(2.5, x)));
+  if (snap && lkStage === 'dict') {
+    const k = LK.K.slice(0, 5).find(k => Math.hypot(k[0] - q[0], k[1] - q[1]) < 0.2);
+    if (k) q = [...k];
+  }
+  lkQ = q; lkRender();
+}
+function lkTweenTo(q) {
+  const from = [...lkQ];
+  tween('lk', 0, 1, p => { lkQ = p === 1 ? [...q] : from.map((x, j) => x + (q[j] - x) * p); lkRender(); });
+}
+document.querySelectorAll('[data-stage]').forEach(btn => btn.addEventListener('click', () => {
+  lkStage = btn.dataset.stage; setPressed(btn.parentNode, btn);
+  if (lkStage === 'next') { lkTagUntil = performance.now() + 1000; setTimeout(lkRender, 1020); }
+  lkTweenTo(LK.Q[lkStage]);
+}));
+draggable($('lk-h'), $('lk-svg'), p => lkSetQ([(p.x - 180) / 60, (180 - p.y) / 60]), () => stopTween('lk'));
+$('lk-h').addEventListener('keydown', e => {
+  const d = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, 1], ArrowDown: [0, -1] }[e.key];
+  if (!d) return;
+  e.preventDefault(); stopTween('lk');
+  lkSetQ([lkQ[0] + 0.25 * d[0], lkQ[1] + 0.25 * d[1]]);
+});
+const lkRow = e => { const tr = e.target.closest('tr[data-i]'); if (tr) lkTweenTo(LK.K[+tr.dataset.i]); };
+$('lk-tb').addEventListener('click', lkRow);
+$('lk-tb').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); lkRow(e); } });
 
-  // Delta rule vs plain sum: k fixed and unit, so S^T k is one vector r per rule. v1, v2 orthonormal in 2-D.
-  const v1 = [1, 0], v2 = [0, 1], MAX = 10;
-  let rl, rd, nw;
-  const err = r => Math.hypot(r[0] - v2[0], r[1] - v2[1]);
-  function show4() {
-    const el = err(rl), ed = err(rd);
-    $('rl').style.width = Math.min(el / MAX, 1) * 100 + '%';
-    $('rdl').style.width = Math.min(ed / MAX, 1) * 100 + '%';
-    $('ml').textContent = 'error ' + el.toFixed(2);
-    $('md').textContent = 'error ' + ed.toFixed(2);
-    $('nw').textContent = nw;
+/* ---------- Demo 2: memory ---------- */
+const MEM = { d: 128, perToken: 256, state: 16384, tokPerTile: 64, T: 100000 };
+let mT = 0, mU = 0, mPlay = 0;
+const tOfU = u => u <= 0.25 ? Math.round(u / 0.25 * 64) : Math.round(64 * 1562.5 ** ((u - 0.25) / 0.75));
+const uOfT = t => t <= 64 ? t / 64 * 0.25 : 0.25 + 0.75 * Math.log(t / 64) / Math.log(1562.5);
+const bytes = b => b < 1e3 ? `${b} B` : b < 1e6 ? `${+(b / 1e3).toFixed(1)} kB` : `${nf(+(b / 1e6).toFixed(1))} MB`;
+const memCv = $('mem-cv'), FONT = '16px "CMU Serif", Georgia, serif';
+function runs(ctx, x, y, parts) { for (const [s, col] of parts) { ctx.fillStyle = col; ctx.fillText(s, x, y); x += ctx.measureText(s).width; } }
+function memDraw() {
+  const W = Math.min(480, memCv.parentNode.clientWidth), dpr = devicePixelRatio || 1;
+  const side = Math.min(180, Math.floor((W - 48) / 2)), tile = Math.floor(W / 50);
+  const nearH = side + 80, farH = 34 + 32 * tile + 34, H = Math.max(nearH, farH);
+  if (memCv.width !== Math.round(W * dpr) || memCv.height !== Math.round(H * dpr)) {
+    memCv.width = Math.round(W * dpr); memCv.height = Math.round(H * dpr); memCv.style.height = H + 'px';
   }
-  function reset4() { rl = [...v1]; rd = [...v1]; nw = 0; show4(); }
-  const beta = $('beta');
-  beta.addEventListener('input', () => $('bv').textContent = beta.value);
-  $('wr').addEventListener('click', () => {
-    const b = +beta.value;
-    rl = rl.map((x, j) => x + v2[j]);              // S += k vᵀ
-    rd = rd.map((x, j) => x + b * (v2[j] - x));    // S += β k (v − Sᵀk)ᵀ
-    nw++; show4();
+  const ctx = memCv.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.fillStyle = C.bg; ctx.fillRect(0, 0, W, H);
+  ctx.font = FONT; ctx.textBaseline = 'alphabetic';
+  const t = mT;
+  if (t <= 64) {
+    const y0 = Math.round((H - nearH) / 2) + 4, sx = 8, cx = W - 8 - side;
+    ctx.fillStyle = C.o; ctx.fillRect(sx, y0, side, side);
+    const sw = side / 64;
+    ctx.fillStyle = C.b;
+    for (let j = 0; j < t; j++) ctx.fillRect(cx + j * sw, y0, Math.max(sw - 0.6, 0.6), side);
+    ctx.setLineDash([6, 4]); ctx.strokeStyle = C.muted; ctx.lineWidth = 2; ctx.strokeRect(cx, y0, side, side); ctx.setLineDash([]);
+    if (t === 64) { ctx.fillStyle = C.t; ctx.font = '32px "CMU Serif", Georgia, serif'; ctx.textAlign = 'center'; ctx.fillText('=', W / 2, y0 + side / 2 + 10); ctx.textAlign = 'left'; ctx.font = FONT; }
+    const ly = y0 + side + 22;
+    runs(ctx, sx, ly, [['S: 128 × 128', C.o]]);
+    runs(ctx, sx, ly + 21, [['= 16,384', C.o]]);
+    runs(ctx, cx, ly, [['KV cache', C.muted]]);
+    if (t === 64) { runs(ctx, cx, ly + 21, [['64 tokens × ', C.ink], ['256', C.b]]); runs(ctx, cx, ly + 42, [['= 16,384', C.ink]]); }
+    else runs(ctx, cx, ly + 21, [['+', C.ink], ['256', C.b], [' per token', C.ink]]);
+  } else {
+    // far view: S is one tile, the cache is ceil(t/64) tiles in 50 columns
+    const x0 = Math.floor((W - 50 * tile) / 2), y0 = 6;
+    ctx.fillStyle = C.o; ctx.fillRect(x0 + 6, y0 + 6, tile - 1, tile - 1);
+    ctx.strokeStyle = C.plum; ctx.lineWidth = 3; ctx.beginPath(); ctx.roundRect(x0 + 1.5, y0 + 1.5, tile + 8, tile + 8, 6); ctx.stroke();
+    runs(ctx, x0 + tile + 18, y0 + tile / 2 + 11, [['S', C.o]]);
+    const gy = 34, tiles = t / 64, full = Math.floor(tiles), frac = tiles - full;
+    ctx.fillStyle = C.b;
+    for (let i = 0; i < Math.ceil(tiles); i++) {
+      const w = i === full ? frac * (tile - 1) : tile - 1;
+      ctx.fillRect(x0 + (i % 50) * tile, gy + Math.floor(i / 50) * tile, w, tile - 1);
+    }
+    runs(ctx, x0, H - 10, [['1 tile = 16,384 numbers', C.muted]]);
+  }
+}
+function memSet(t, u = uOfT(t)) {
+  mT = t; mU = u;
+  $('mem-r').value = Math.round(u * 1000);
+  $('mem-r').setAttribute('aria-valuetext', `${nf(t)} tokens`);
+  $('mem-t').textContent = nf(t);
+  $('mem-c').textContent = nf(MEM.perToken * t);
+  const r = t / 64;
+  $('mem-ratio').textContent = r.toLocaleString('en-US', r < 10 ? { minimumFractionDigits: 2, maximumFractionDigits: 2 } : { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  $('mem-bytes').textContent = bytes(2 * MEM.perToken * t);
+  memDraw();
+}
+function memStop() { cancelAnimationFrame(mPlay); mPlay = 0; $('mem-play').textContent = 'Play'; $('mem-play').setAttribute('aria-pressed', 'false'); }
+$('mem-r').addEventListener('pointerdown', memStop);
+$('mem-r').addEventListener('input', () => { memStop(); stopTween('mem'); const u = $('mem-r').value / 1000; memSet(tOfU(u), u); });
+document.querySelectorAll('[data-t]').forEach(btn => btn.addEventListener('click', () => {
+  memStop(); const T = +btn.dataset.t, u1 = uOfT(T);
+  tween('mem', mU, u1, u => u === u1 ? memSet(T, u1) : memSet(tOfU(u), u));
+}));
+$('mem-play').addEventListener('click', () => {
+  if (mPlay) return memStop();
+  stopTween('mem');
+  if (mT >= MEM.T) memSet(0);
+  let tf = mT, hold = mT === 64 ? 1 : 0, last = performance.now();
+  $('mem-play').textContent = 'Pause'; $('mem-play').setAttribute('aria-pressed', 'true');
+  const step = now => {
+    const dt = Math.min(0.1, (now - last) / 1000); last = now;
+    if (mT < 8) { tf = Math.min(8, tf + 2 * dt); memSet(Math.floor(tf)); }
+    else if (mT < 64) { tf = Math.min(64, Math.max(tf, 8) + 30 * dt); memSet(Math.floor(tf)); if (mT === 64) hold = 1; }
+    else if (hold > 0) hold -= dt;
+    else { const u = Math.min(1, mU + 0.75 / 5 * dt); u >= 1 ? memSet(MEM.T, 1) : memSet(tOfU(u), u); }
+    if (mT >= MEM.T) return memStop();
+    mPlay = requestAnimationFrame(step);
+  };
+  mPlay = requestAnimationFrame(step);
+});
+new ResizeObserver(memDraw).observe(memCv.parentNode);
+
+/* ---------- Demo 3: crosstalk ---------- */
+const V1 = [3, 1, 2, 1.5], V2 = [1, 3, 1.5, 2.5];
+let ctTheta = 90;
+const ctC = th => { const c = Math.cos(th * Math.PI / 180); return Math.abs(c) < 1e-12 ? 0 : c; };
+const ctRead = c => V1.map((x, i) => x + c * V2[i]);
+function ctRender() {
+  const th = ctTheta, c = ctC(th), r = th * Math.PI / 180, O = [180, 215], R = 150;
+  const tx = O[0] + R * Math.cos(r), ty = O[1] - R * Math.sin(r), px = O[0] + R * c;
+  let g = `<path d="M${O[0] - R},${O[1]} A${R},${R} 0 0 1 ${O[0] + R},${O[1]}" fill="none" stroke="${C.rule}" stroke-width="2"/>`;
+  g += `<line x1="${tx}" y1="${ty}" x2="${px}" y2="${O[1]}" stroke="${C.muted}" stroke-width="2" stroke-dasharray="4 4"/>`;
+  if (Math.abs(c) < 0.02) g += `<path d="M${O[0]},${O[1] - 14} h14 v14" fill="none" stroke="${C.muted}" stroke-width="2"/>`;
+  g += `<line x1="${O[0]}" y1="${O[1] + 10}" x2="${px}" y2="${O[1] + 10}" stroke="${C.b}" stroke-width="5"/>`;
+  g += arrow(O[0], O[1], O[0] + R, O[1], C.o, 5) + arrow(O[0], O[1], tx, ty, C.b, 5);
+  g += `<text x="${O[0] + R - 8}" y="${O[1] + 32}" style="fill:${C.o}">${sub('k', 1)}</text>`;
+  g += `<text x="${O[0] + (R + 18) * Math.cos(r)}" y="${O[1] - (R + 18) * Math.sin(r)}" dy=".35em" text-anchor="middle" style="fill:${C.b}">${sub('k', 2)}</text>`;
+  g += `<circle cx="${tx}" cy="${ty}" r="7" fill="${C.b}"/>`;
+  g += `<text x="10" y="266" style="fill:${C.o}">${sub('k', 1, '·')}${sub('k', 1, ' = 1')}</text>`;
+  g += `<text x="10" y="290" style="fill:${C.b}">${sub('k', 1, '·')}${sub('k', 2, ' = ' + f2(c))}</text>`;
+  $('ct-g').innerHTML = g;
+  const h = $('ct-h'); h.setAttribute('cx', tx); h.setAttribute('cy', ty);
+
+  const y = v => 30 + (4.25 - v) * 34, read = ctRead(c);
+  let b = `<line x1="20" y1="${y(0)}" x2="250" y2="${y(0)}" stroke="${C.muted}" stroke-width="2"/>`;
+  V1.forEach((v1, i) => {
+    const x = 34 + i * 54, top = read[i];
+    b += `<rect x="${x}" y="${y(v1)}" width="40" height="${y(0) - y(v1)}" fill="${C.o}"/>`;
+    b += `<rect x="${x}" y="${y(Math.max(v1, top))}" width="40" height="${Math.abs(y(top) - y(v1))}" fill="${C.b}"/>`;
+    b += `<rect x="${x}" y="${y(v1)}" width="40" height="${y(0) - y(v1)}" fill="none" stroke="${C.t}" stroke-width="2" stroke-dasharray="6 4"/>`;
+    b += `<text x="${x + 20}" y="270" text-anchor="middle" font-size="15" style="font-size:15px">${f2(top)}</text>`;
   });
-  $('rs').addEventListener('click', reset4); reset4();
+  b += `<text x="28" y="${y(1.5)}" dy=".35em" text-anchor="end" style="fill:${C.o}">${sub('v', 1)}</text>`;
+  if (c > 0.3) {
+    const ym = y(V1[3] + c * V2[3] / 2);
+    b += arrow(272, ym, 240, ym, C.b, 3) + `<text x="276" y="${ym}" dy=".35em" style="fill:${C.b}">crosstalk</text>`;
+  }
+  b += `<text x="135" y="294" text-anchor="middle">read with ${sub('k', 1)}</text>`;
+  $('ct-bg').innerHTML = b;
+  $('ct-op').textContent = c < 0 ? '−' : '+';
+  $('ct-c').textContent = f2(Math.abs(c));
+  $('ct-rv').textContent = th + '°';
+  $('ct-r').value = Math.round(th);
+  $('ct-r').setAttribute('aria-valuetext', `${th}°, k1·k2 = ${f2(c)}`);
+}
+function ctSet(th) { ctTheta = th; ctRender(); }
+draggable($('ct-h'), $('ct-svg'), p => {
+  const a = Math.atan2(215 - p.y, p.x - 180) * 180 / Math.PI;
+  ctSet(a < 0 ? (p.x >= 180 ? 0 : 180) : Math.round(a));
+}, () => stopTween('ct'));
+$('ct-r').addEventListener('input', () => { stopTween('ct'); ctSet(+$('ct-r').value); });
+$('ct-45').addEventListener('click', () => tween('ct', ctTheta, 45, v => ctSet(Math.round(v))));
+
+/* ---------- Demo 4: plain sum vs delta rule ---------- */
+const N_MAX = 10;
+let sdN = 0, sdNf = 0, sdBeta = 0.5;
+const readSum = n => V1.map((x, i) => x + n * V2[i]);
+const readDelta = (n, b) => V2.map((x, i) => x + (1 - b) ** n * (V1[i] - x));
+const errSum = n => norm(V2.map((x, i) => x - readSum(n)[i]));
+const errDelta = (n, b) => norm(V2.map((x, i) => x - readDelta(n, b)[i]));
+function sdRender() {
+  const nf_ = sdNf, b = sdBeta, X = n => 50 + 25 * n, Y = e => 36 + (2 - Math.log10(Math.max(e, 0.001))) * 42;
+  let g = `<text x="8" y="18">‖<tspan font-style="italic">v</tspan> − <tspan font-style="italic">S</tspan><tspan dy="-6" font-size="70%">T</tspan><tspan dy="6" font-style="italic">k</tspan>‖ (log scale)</text>`;
+  [0.01, 0.1, 1, 10, 100].forEach(v => { g += `<line x1="44" y1="${Y(v)}" x2="50" y2="${Y(v)}" stroke="${C.muted}" stroke-width="2"/><text x="40" y="${Y(v)}" dy=".35em" text-anchor="end">${v}</text>`; });
+  for (let n = 0; n <= 10; n += 2) g += `<line x1="${X(n)}" y1="246" x2="${X(n)}" y2="252" stroke="${C.muted}" stroke-width="2"/><text x="${X(n)}" y="270" text-anchor="middle">${n}</text>`;
+  g += `<path d="M50,30 V246 H300" fill="none" stroke="${C.muted}" stroke-width="2"/><text x="175" y="292" text-anchor="middle">writes</text>`;
+  const pts = f => { const p = [], k = Math.floor(nf_); for (let n = 0; n <= k; n++) p.push([n, f(n)]); if (nf_ > k) { const a = f(k), z = f(k + 1), fr = nf_ - k; p.push([nf_, 10 ** (Math.log10(Math.max(a, 1e-3)) + fr * (Math.log10(Math.max(z, 1e-3)) - Math.log10(Math.max(a, 1e-3))))]); } return p; };
+  const line = (p, col) => `<polyline points="${p.map(([n, e]) => X(n) + ',' + Y(e)).join(' ')}" fill="none" stroke="${col}" stroke-width="3"/>` +
+    p.filter(([n]) => Number.isInteger(n)).map(([n, e]) => `<circle cx="${X(n)}" cy="${Y(e)}" r="4" fill="${col}"/>`).join('');
+  const ps = pts(errSum), pd = pts(n => errDelta(n, b));
+  g += `<text x="72" y="62" style="fill:${C.b}">${sub('v', 1, ' + ')}<tspan font-style="italic">n</tspan> ${sub('v', 2)}</text>`;
+  g += line(ps, C.b) + line(pd, C.o);
+  if (pd.some(([, e]) => e < 0.001)) g += `<text x="40" y="${Y(0)}" dy=".35em" text-anchor="end" style="fill:${C.o}">0</text>`;
+  if (sdNf === N_MAX) {
+    const ed = errDelta(N_MAX, b), lbl = ed < 0.0005 ? '0' : ed.toFixed(3);
+    g += `<text x="306" y="${Y(errSum(N_MAX))}" dy=".35em" style="fill:${C.b}">${errSum(N_MAX).toFixed(1)}</text>`;
+    g += `<text x="306" y="${Y(ed)}" dy=".35em" style="fill:${C.o}">${lbl}</text>`;
+  }
+  $('sd-g').innerHTML = g;
+
+  const yb = v => 250 - v * 54, rd = readDelta(nf_, b);
+  let bb = `<text x="180" y="24" text-anchor="middle">${sdN === 0 ? `<tspan font-style="italic">k</tspan> holds ${sub('v', 1, '.')} Write <tspan font-style="italic">k</tspan> → ${sub('v', 2)}` : `after ${sdN} write${sdN > 1 ? 's' : ''}`}</text>`;
+  bb += `<line x1="30" y1="250" x2="330" y2="250" stroke="${C.muted}" stroke-width="2"/>`;
+  V2.forEach((v2, i) => {
+    const x = 50 + i * 72, r = rd[i], lo = Math.min(r, v2), hi = Math.max(r, v2);
+    bb += `<rect x="${x}" y="${yb(lo)}" width="48" height="${250 - yb(lo)}" fill="${C.o}"/>`;
+    if (hi - lo > 0.005) bb += `<rect x="${x + 1.5}" y="${yb(hi)}" width="45" height="${yb(lo) - yb(hi)}" fill="none" stroke="${C.o}" stroke-width="3"/>`;
+    bb += `<rect x="${x}" y="${yb(v2)}" width="48" height="${250 - yb(v2)}" fill="none" stroke="${C.t}" stroke-width="2" stroke-dasharray="6 4"/>`;
+  });
+  const S_T_K = `<tspan font-style="italic">S</tspan><tspan dy="-6" font-size="70%">T</tspan><tspan dy="6" font-style="italic">k</tspan>`;
+  bb += `<rect x="20" y="263" width="12" height="12" fill="${C.o}"/><text x="38" y="274">${S_T_K}</text>`;
+  bb += `<rect x="112" y="263" width="12" height="12" fill="none" stroke="${C.t}" stroke-width="2" stroke-dasharray="3 2"/><text x="130" y="274">${sub('v', 2)}</text>`;
+  bb += `<rect x="192" y="263" width="12" height="12" fill="none" stroke="${C.o}" stroke-width="2"/><text x="210" y="274"><tspan font-style="italic">v</tspan> − ${S_T_K}</text>`;
+  bb += `<text x="180" y="296" text-anchor="middle" style="fill:${C.o}">‖<tspan font-style="italic">v</tspan> − ${S_T_K}‖ = ${f2(errDelta(nf_, b))}</text>`;
+  $('sd-bg').innerHTML = bb;
+  $('sd-w').disabled = sdN >= N_MAX;
+  $('sd-bv').textContent = `β = ${+b.toFixed(2)}`;
+}
+$('sd-w').addEventListener('click', () => {
+  if (sdN >= N_MAX) return;
+  sdN++; tween('sd', sdN - 1, sdN, v => { sdNf = v; sdRender(); });
+  if (sdN >= N_MAX) $('sd-reset').focus(); // Write gets disabled, keep focus on the plate
+});
+$('sd-reset').addEventListener('click', () => { stopTween('sd'); sdN = sdNf = 0; sdRender(); });
+$('sd-b').addEventListener('input', () => { stopTween('sd'); sdBeta = +$('sd-b').value; sdNf = sdN; sdRender(); });
+
+/* ---------- Demo 5: dict test ---------- */
+let dtN = 0, dtB = '1.0', dtPlay = 0, dtNoteUntil = 0;
+$('dt-chips').innerHTML = Array.from({ length: 8 }, (_, i) => `<span class="chip" id="dt-k${i}"><i>k</i><sub>${i + 1}</sub></span>`).join('');
+function dtRender() {
+  const n = dtN, X = u => 60 + u * (560 / 300), Y = v => 420 - v * 50, d = DICT.delta[dtB], bl = dtB === '1.0' ? '1' : dtB;
+  let g = '';
+  for (let v = 0; v <= 8; v++) g += `<line x1="52" y1="${Y(v)}" x2="60" y2="${Y(v)}" stroke="${C.muted}" stroke-width="2" vector-effect="non-scaling-stroke"/><text x="46" y="${Y(v)}" dy=".35em" text-anchor="end">${v}</text>`;
+  for (let u = 0; u <= 300; u += 50) g += `<line x1="${X(u)}" y1="420" x2="${X(u)}" y2="428" stroke="${C.muted}" stroke-width="2" vector-effect="non-scaling-stroke"/><text x="${X(u)}" y="458" text-anchor="middle">${u}</text>`;
+  g += `<path d="M60,14 V420 H${X(300)}" fill="none" stroke="${C.muted}" stroke-width="2" vector-effect="non-scaling-stroke"/>`;
+  g += `<line x1="60" y1="${Y(1)}" x2="${X(300)}" y2="${Y(1)}" stroke="${C.muted}" stroke-width="1.5" stroke-dasharray="6 6" vector-effect="non-scaling-stroke"/>`;
+  g += `<text x="${X(300)}" y="${Y(1) - 8}" text-anchor="end" style="fill:${C.muted}">1 = error as big as the value</text>`;
+  const poly = (a, col) => n ? `<polyline points="${a.slice(0, n).map((v, j) => X(j + 1).toFixed(1) + ',' + Y(v).toFixed(1)).join(' ')}" fill="none" stroke="${col}" stroke-width="3" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>` : '';
+  g += poly(DICT.sum, C.b) + poly(d, C.o);
+  g += `<line x1="84" y1="44" x2="114" y2="44" stroke="${C.b}" stroke-width="3" vector-effect="non-scaling-stroke"/><text x="124" y="44" dy=".35em">plain sum</text>`;
+  g += `<line x1="84" y1="84" x2="114" y2="84" stroke="${C.o}" stroke-width="3" vector-effect="non-scaling-stroke"/><text x="124" y="84" dy=".35em">delta rule, β = ${bl}</text>`;
+  if (n === 300) {
+    g += `<text x="${X(300) + 10}" y="${Y(DICT.sum[299])}" dy=".35em" style="fill:${C.b}">${DICT.sum[299].toFixed(2)}</text>`;
+    g += `<text x="${X(300) + 10}" y="${Y(d[299])}" dy=".35em" style="fill:${C.o}">${d[299].toFixed(2)}</text>`;
+    if (dtB === '1.0') {
+      const seg = d.slice(199), hi = Math.max(...seg), lo = Math.min(...seg);
+      g += `<rect x="${X(200) - 6}" y="${Y(hi) - 8}" width="${X(300) - X(200) + 12}" height="${Y(lo) - Y(hi) + 16}" rx="6" fill="none" stroke="${C.plum}" stroke-width="3" vector-effect="non-scaling-stroke"/>`;
+      g += `<text x="${X(300)}" y="${Y(1) - 8}" text-anchor="end" style="fill:${C.o}"><tspan x="${X(300)}" dy="-2.4em">what's left:</tspan><tspan x="${X(300)}" dy="1.2em">crosstalk between keys</tspan></text>`;
+    }
+  }
+  if (performance.now() < dtNoteUntil) g += `<text x="${X(60)}" y="${Y(5.4)}" style="fill:${C.b}">every overwrite piles on: old + new</text>`;
+  $('dt-g').innerHTML = g;
+  for (let i = 0; i < 8; i++) $('dt-k' + i).classList.toggle('lit', n > 0 && DICT.idx[n - 1] === i);
+  $('dt-rv').textContent = `update ${n}`;
+  $('dt-r').value = n;
+}
+function dtStop() { cancelAnimationFrame(dtPlay); dtPlay = 0; $('dt-play').textContent = 'Play'; $('dt-play').setAttribute('aria-pressed', 'false'); }
+$('dt-r').addEventListener('pointerdown', dtStop);
+$('dt-r').addEventListener('input', () => { dtStop(); dtN = +$('dt-r').value; dtRender(); });
+$('dt-beta').addEventListener('click', e => { const btn = e.target.closest('[data-b]'); if (!btn) return; dtB = btn.dataset.b; setPressed($('dt-beta'), btn); dtRender(); });
+$('dt-play').addEventListener('click', () => {
+  if (dtPlay) return dtStop();
+  if (dtN >= 300) dtN = 0;
+  let nf_ = dtN, last = performance.now();
+  $('dt-play').textContent = 'Pause'; $('dt-play').setAttribute('aria-pressed', 'true');
+  const step = now => {
+    const dt = Math.min(0.1, (now - last) / 1000); last = now;
+    nf_ = Math.min(300, nf_ < 8 ? Math.min(8, nf_ + 2 * dt) : nf_ + 60 * dt);
+    const prev = dtN; dtN = Math.floor(nf_);
+    if (prev < 50 && dtN >= 50) { dtNoteUntil = now + 1500; setTimeout(dtRender, 1520); }
+    dtRender();
+    if (dtN >= 300) return dtStop();
+    dtPlay = requestAnimationFrame(step);
+  };
+  dtPlay = requestAnimationFrame(step);
+});
+
+/* ---------- Self-check: the scene files' storyboard values ---------- */
+function checks() {
+  const r2 = a => a.map(x => x.toFixed(2)).join(), eq = (a, b, msg) => console.assert(a === b, msg, a, b);
+  const s5 = LK.K.slice(0, 5).map(k => k[0] * LK.Q.attn[0] + k[1] * LK.Q.attn[1]), w5 = softmax(s5);
+  eq(s5.join(), '0.5,2.5,1,-1,-0.5', 'lookup s, Q5');
+  eq(w5.map(fw).join(), '.09,.70,.16,.02,.03', 'lookup w, Q5');
+  const s6 = LK.K.map(k => k[0] * LK.Q.next[0] + k[1] * LK.Q.next[1]), w6 = softmax(s6);
+  eq(s6.join(), '1,2,0.5,-0.5,-1,2.5', 'lookup s, Q6');
+  eq(w6.map(fw).join(), '.11,.30,.07,.02,.01,.49', 'lookup w, Q6');
+  eq(LK.toks[w5.indexOf(Math.max(...w5))] + LK.toks[w6.indexOf(Math.max(...w6))], 'catmat', 'lookup argmax');
+  eq(64 * 256, 16384, 'memory 64 tokens = S'); eq(256 * 100000, 25600000, 'memory cache at 100k');
+  eq(100000 / 64, 1562.5, 'memory tiles'); eq(Math.ceil(100000 / 64), 1563, 'memory tiles drawn');
+  eq(tOfU(0) + ',' + tOfU(0.25) + ',' + tOfU(1), '0,64,100000', 'memory track mapping');
+  eq(r2(ctRead(ctC(90))), r2(V1), 'crosstalk 90°'); eq(f2(ctC(45)), '0.71', 'crosstalk c at 45°');
+  eq(r2(ctRead(ctC(45))), '3.71,3.12,3.06,3.27', 'crosstalk read at 45°');
+  eq([0, 1, 2, 3].map(n => errSum(n).toFixed(2)).join(), '3.04,4.03,7.76,11.88', 'errSum 0..3');
+  eq(errSum(10).toFixed(1), '41.8', 'errSum 10');
+  for (let n = 0; n < 10; n++) console.assert(Math.abs(errDelta(n + 1, 0.5) - errDelta(n, 0.5) / 2) < 1e-12, 'errDelta halves', n);
+  eq(errDelta(10, 0.5).toFixed(3), '0.003', 'errDelta 10');
+  eq(readDelta(1, 0.5).join(), '2,2,1.75,2', 'readDelta 1');
+  eq(readDelta(2, 0.5).join(), '1.5,2.5,1.625,2.25', 'readDelta 2');
+  eq(readDelta(3, 0.5).join(), '1.25,2.75,1.5625,2.375', 'readDelta 3');
+  eq(DICT.sum[299].toFixed(2), '6.19', 'dict sum end'); eq(DICT.delta['1.0'][299].toFixed(2), '0.19', 'dict delta end');
+  eq(DICT.idx.slice(0, 8).join(), '4,7,7,2,7,5,3,7', 'dict idx');
+  eq(['0.1', '0.25', '0.5', '0.75', '1.0'].map(b => DICT.delta[b][299].toFixed(2)).join(), '0.92,0.80,0.59,0.36,0.19', 'dict delta ends by beta');
+}
+
+checks();
+lkRender(); memSet(0); ctRender(); sdRender(); dtRender();
+document.fonts.ready.then(memDraw); // the canvas text needs CMU Serif loaded
+// The post links stay hidden until POST_URL is set. Anchors are a guess at Substack's slugs: check them once live.
+const POST_URL = "";
+if (POST_URL) document.querySelectorAll(".read a[data-anchor]").forEach(a => { a.href = POST_URL + a.dataset.anchor; a.parentElement.hidden = false; });
 </script>
 </body>
 </html>

@@ -1,6 +1,6 @@
 """PNG frames -> framed GIF with one shared palette, no dithering, identical frames merged.
 Manim's own GIF output dithers every frame, which shifts colours and bloats the file.
-Runs inside the Manim image: python frames_to_gif.py <frames_dir> out.gif"""
+Runs inside the Manim image: python frames_to_gif.py <frames_dir> out.gif (or out.png for a still: the framed last frame)"""
 import sys
 from pathlib import Path
 
@@ -21,6 +21,8 @@ for im in frames:
     framed.append(Image.new("RGB", (w + 2 * m, h + 2 * m), style.MAT))
     framed[-1].paste(im, (m, m), mask)
 frames = framed
+if out.endswith(".png"):
+    sys.exit(frames[-1].save(out))
 
 # Palette: the style colours exactly, then anti-aliasing shades sampled from the clip.
 pinned = [style.BG, style.MAT, style.SURFACE, style.RULE, style.MUTED, style.INK, style.PRIMARY, style.SECONDARY,

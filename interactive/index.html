@@ -240,26 +240,26 @@
 <!-- Demo 5: dict_test.py -->
 <section id="dict-test">
   <h2>300 overwrites</h2>
-  <p>300 random updates to 8 keys, scored on how far each key's read is from its latest value. The plain sum climbs to 6.19, and the delta rule at β = 1 holds at 0.19, the crosstalk between keys.</p>
+  <p>300 random updates to 8 keys, scored on how far each key's read is from its latest value. The plain sum climbs to 6.19 and the delta rule at β = 1 holds at 0.19, the crosstalk between keys. At β = 0.5 it ends at 0.59, since each write leaves half of the old value behind.</p>
   <div class="plate">
     <div class="strip"><span class="mu">dict</span><div class="chips" id="dt-chips"></div></div>
     <p class="axt">error reading latest value</p>
     <svg id="dt-svg" class="wide" viewBox="0 0 720 470" role="img" aria-labelledby="dt-svgt">
-      <title id="dt-svgt">Error reading each key's latest value over 300 updates: plain sum in blue, delta rule in orange</title>
+      <title id="dt-svgt">Error reading each key's latest value over 300 updates: plain sum in blue, delta rule at β = 1 in solid orange, and at the β you pick in dashed orange</title>
       <g id="dt-g"></g>
     </svg>
     <p class="axt center">updates written</p>
     <div class="ctl">
-      <label for="dt-r"><span id="dt-rv">update 0</span></label>
-      <input id="dt-r" type="range" min="0" max="300" step="1" value="0">
+      <label for="dt-r"><span id="dt-rv">update 300</span></label>
+      <input id="dt-r" type="range" min="0" max="300" step="1" value="300">
       <button type="button" id="dt-play" aria-pressed="false">Play</button>
       <div class="bgrp"><span class="mu" aria-hidden="true">β</span>
       <div class="seg" role="group" aria-label="beta for the delta rule" id="dt-beta">
         <button type="button" data-b="0.1" aria-pressed="false">0.1</button>
         <button type="button" data-b="0.25" aria-pressed="false">0.25</button>
-        <button type="button" data-b="0.5" aria-pressed="false">0.5</button>
+        <button type="button" data-b="0.5" aria-pressed="true">0.5</button>
         <button type="button" data-b="0.75" aria-pressed="false">0.75</button>
-        <button type="button" data-b="1.0" aria-pressed="true">1</button>
+        <button type="button" data-b="1.0" aria-pressed="false">1</button>
       </div></div>
     </div>
   </div>
@@ -597,27 +597,32 @@ $('sd-reset').addEventListener('click', () => { stopTween('sd'); sdN = sdNf = 0;
 $('sd-b').addEventListener('input', () => { stopTween('sd'); sdBeta = +$('sd-b').value; sdNf = sdN; sdRender(); });
 
 /* ---------- Demo 5: dict test ---------- */
-let dtN = 0, dtB = '1.0', dtPlay = 0, dtNoteUntil = 0;
+let dtN = 300, dtB = '0.5', dtPlay = 0, dtNoteUntil = 0; // opens on the GIF's final picture
+const dtPhone = matchMedia('(max-width: 759px)'); // chart text is 32 units there, 20 above
+dtPhone.addEventListener('change', () => dtRender());
 $('dt-chips').innerHTML = Array.from({ length: 8 }, (_, i) => `<span class="chip" id="dt-k${i}"><i>k</i><sub>${i + 1}</sub></span>`).join('');
 function dtRender() {
-  const n = dtN, X = u => 60 + u * (560 / 300), Y = v => 420 - v * 50, d = DICT.delta[dtB], bl = dtB === '1.0' ? '1' : dtB;
+  // plot ends at 560 to leave a right column for the end labels and the bracket note
+  const n = dtN, X = u => 60 + u * (500 / 300), Y = v => 420 - v * 50, d1 = DICT.delta['1.0'], d = DICT.delta[dtB], two = dtB !== '1.0';
   let g = '';
   for (let v = 0; v <= 8; v++) g += `<line x1="52" y1="${Y(v)}" x2="60" y2="${Y(v)}" stroke="${C.muted}" stroke-width="2" vector-effect="non-scaling-stroke"/><text x="46" y="${Y(v)}" dy=".35em" text-anchor="end">${v}</text>`;
   for (let u = 0; u <= 300; u += 50) g += `<line x1="${X(u)}" y1="420" x2="${X(u)}" y2="428" stroke="${C.muted}" stroke-width="2" vector-effect="non-scaling-stroke"/><text x="${X(u)}" y="458" text-anchor="middle">${u}</text>`;
   g += `<path d="M60,14 V420 H${X(300)}" fill="none" stroke="${C.muted}" stroke-width="2" vector-effect="non-scaling-stroke"/>`;
   g += `<line x1="60" y1="${Y(1)}" x2="${X(300)}" y2="${Y(1)}" stroke="${C.muted}" stroke-width="1.5" stroke-dasharray="6 6" vector-effect="non-scaling-stroke"/>`;
   g += `<text x="${X(300)}" y="${Y(1) - 8}" text-anchor="end" style="fill:${C.muted}">1 = error as big as the value</text>`;
-  const poly = (a, col) => n ? `<polyline points="${a.slice(0, n).map((v, j) => X(j + 1).toFixed(1) + ',' + Y(v).toFixed(1)).join(' ')}" fill="none" stroke="${col}" stroke-width="3" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>` : '';
-  g += poly(DICT.sum, C.b) + poly(d, C.o);
-  g += `<line x1="84" y1="44" x2="114" y2="44" stroke="${C.b}" stroke-width="3" vector-effect="non-scaling-stroke"/><text x="124" y="44" dy=".35em">plain sum</text>`;
-  g += `<line x1="84" y1="84" x2="114" y2="84" stroke="${C.o}" stroke-width="3" vector-effect="non-scaling-stroke"/><text x="124" y="84" dy=".35em">delta rule, β = ${bl}</text>`;
+  const poly = (a, col, dash = '') => n ? `<polyline points="${a.slice(0, n).map((v, j) => X(j + 1).toFixed(1) + ',' + Y(v).toFixed(1)).join(' ')}" fill="none" stroke="${col}" stroke-width="3" stroke-linejoin="round"${dash && ` stroke-dasharray="${dash}"`} vector-effect="non-scaling-stroke"/>` : '';
+  g += poly(DICT.sum, C.b) + (two ? poly(d, C.o, '7 5') : '') + poly(d1, C.o);
+  const legend = (y, col, label, dash = '') => `<line x1="84" y1="${y}" x2="114" y2="${y}" stroke="${col}" stroke-width="3"${dash && ` stroke-dasharray="${dash}"`} vector-effect="non-scaling-stroke"/><text x="124" y="${y}" dy=".35em">${label}</text>`;
+  g += legend(44, C.b, 'plain sum') + legend(84, C.o, 'delta rule, β = 1') + (two ? legend(124, C.o, `delta rule, β = ${dtB}`, '5 4') : '');
   if (n === 300) {
+    const em = dtPhone.matches ? 32 : 20, yd1 = Y(d1[299]), yd = Math.min(Y(d[299]), yd1 - 1.1 * em); // stack the two orange labels
     g += `<text x="${X(300) + 10}" y="${Y(DICT.sum[299])}" dy=".35em" style="fill:${C.b}">${DICT.sum[299].toFixed(2)}</text>`;
-    g += `<text x="${X(300) + 10}" y="${Y(d[299])}" dy=".35em" style="fill:${C.o}">${d[299].toFixed(2)}</text>`;
-    if (dtB === '1.0') {
-      const seg = d.slice(199), hi = Math.max(...seg), lo = Math.min(...seg);
-      g += `<rect x="${X(200) - 6}" y="${Y(hi) - 8}" width="${X(300) - X(200) + 12}" height="${Y(lo) - Y(hi) + 16}" rx="6" fill="none" stroke="${C.plum}" stroke-width="3" vector-effect="non-scaling-stroke"/>`;
-      g += `<text x="${X(300)}" y="${Y(1) - 8}" text-anchor="end" style="fill:${C.o}"><tspan x="${X(300)}" dy="-2.4em">what's left:</tspan><tspan x="${X(300)}" dy="1.2em">crosstalk between keys</tspan></text>`;
+    g += `<text x="${X(300) + 28}" y="${yd1}" dy=".35em" style="fill:${C.o}">${d1[299].toFixed(2)}</text>`;
+    if (two) {
+      // the gap is stale old value from partial overwrites, not crosstalk (that is the same at any β)
+      g += `<path d="M${X(300) + 6},${Y(d[299])} h10 V${yd1} h-10" fill="none" stroke="${C.muted}" stroke-width="2" vector-effect="non-scaling-stroke"/>`;
+      g += `<text x="${X(300) + 28}" y="${yd}" dy=".35em" style="fill:${C.o}">${d[299].toFixed(2)}</text>`;
+      g += `<text y="${yd}"><tspan x="${X(300) + 28}" dy="-3.3em">lower β =</tspan><tspan x="${X(300) + 28}" dy="1.2em">slower</tspan><tspan x="${X(300) + 28}" dy="1.2em">overwrite</tspan></text>`;
     }
   }
   if (performance.now() < dtNoteUntil) g += `<text x="${X(60)}" y="${Y(5.4)}" style="fill:${C.b}">every overwrite piles on: old + new</text>`;
@@ -671,6 +676,8 @@ function checks() {
   eq(readDelta(3, 0.5).join(), '1.25,2.75,1.5625,2.375', 'readDelta 3');
   eq(DICT.sum[299].toFixed(2), '6.19', 'dict sum end'); eq(DICT.delta['1.0'][299].toFixed(2), '0.19', 'dict delta end');
   eq(DICT.idx.slice(0, 8).join(), '4,7,7,2,7,5,3,7', 'dict idx');
+  eq(DICT.delta['0.5'][299].toFixed(2), '0.59', 'dict delta end, beta 0.5 (the GIF\'s dashed line)');
+  eq(dtN + ' ' + dtB, '300 0.5', 'dict opens on the GIF\'s final picture');
   eq(['0.1', '0.25', '0.5', '0.75', '1.0'].map(b => DICT.delta[b][299].toFixed(2)).join(), '0.92,0.80,0.59,0.36,0.19', 'dict delta ends by beta');
 }
 

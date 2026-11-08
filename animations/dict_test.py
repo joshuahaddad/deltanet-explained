@@ -47,7 +47,7 @@ class DictTest(Scene):
                          .move_to([-4.55 + 1.3 * j, 2.45, 0]) for j in range(n_keys)])
         dict_lab = Text("dict", font_size=style.SMALL, color=style.MUTED).move_to([-6.3, 2.45, 0])
 
-        ax = Axes(x_range=[0, 300, 50], y_range=[0, 8, 1], x_length=10, y_length=4.2, tips=False,
+        ax = Axes(x_range=[0, 300, 50], y_range=[0, 8, 1], x_length=7.8, y_length=4.2, tips=False,
                   axis_config={"color": style.MUTED, "stroke_width": style.STRUCTURE, "include_numbers": True, "font_size": 45})
         ax.shift([-5.6, -2.85, 0] - ax.c2p(0, 0))
         for axis in (ax.x_axis, ax.y_axis):
@@ -107,13 +107,12 @@ class DictTest(Scene):
         self.play(t.animate.set_value(300), run_time=5, rate_func=linear)
 
         # beat 4: call out the result
-        end_sum = MathTex(f"{err_sum[-1]:.2f}", font_size=45, color=style.BLUE).move_to([5.1, ax.c2p(300, err_sum[-1])[1], 0])
-        end_delta = MathTex(f"{err_delta[-1]:.2f}", font_size=45, color=style.ORANGE).move_to([5.1, ax.c2p(300, err_delta[-1])[1] + 0.05, 0])
+        end_sum = MathTex(f"{err_sum[-1]:.2f}", font_size=45, color=style.BLUE).next_to(ax.c2p(300, err_sum[-1]), RIGHT, buff=0.25)
+        end_delta = MathTex(f"{err_delta[-1]:.2f}", font_size=45, color=style.ORANGE).next_to(ax.c2p(300, err_delta[-1]), RIGHT, buff=0.25).shift(0.05 * UP)
         end_half = MathTex(f"{err_half[-1]:.2f}", font_size=45, color=style.ORANGE).next_to(end_delta, UP, buff=0.12)
-        tail = VMobject().set_points_as_corners([ax.c2p(j + 1, err_delta[j]) for j in range(200, 300)])
-        tail_box = style.box(tail)
-        crosstalk = Text("what's left: crosstalk between keys", font_size=style.SMALL, color=style.ORANGE).next_to(ax.c2p(300, 2.6), LEFT, buff=0)
-        self.play(Write(end_sum), Write(end_delta), Write(end_half), Create(tail_box), FadeIn(crosstalk), run_time=1.5)
+        brace = Brace(VGroup(end_delta, end_half), RIGHT, buff=0.1, color=style.MUTED)
+        slower = Text("lower β =\nslower overwrite", font_size=style.SMALL, color=style.INK).next_to(brace, RIGHT, buff=0.15)
+        self.play(Write(end_sum), Write(end_delta), Write(end_half), GrowFromCenter(brace), FadeIn(slower), run_time=1.5)
 
         # beat 5: held final frame
         self.wait(2.8)

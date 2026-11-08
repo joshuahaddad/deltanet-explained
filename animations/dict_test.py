@@ -1,4 +1,4 @@
-"""8 keys, 300 random overwrites: the plain sum's readback error climbs, the delta rule's stays at crosstalk level."""
+"""8 keys, 300 random overwrites: the plain sum's readback error climbs, the delta rule's stays small (β = 1 lowest)."""
 import sys
 
 import numpy as np
@@ -8,13 +8,13 @@ import style
 sys.path.insert(0, "/manim")
 from deltanet import unit
 
-# same setup and RNG order as make_figures.py:dict_test
+# same setup and RNG order as make_figures.py:dict_test and interactive/make_dict_test_json.py
 rng = np.random.default_rng(1)
 d, n_keys, steps = 128, 8, 300
 keys = unit(rng.normal(size=(n_keys, d)))
 truth = np.zeros((n_keys, d))
-S_sum, S_delta = np.zeros((d, d)), np.zeros((d, d))
-err_sum, err_delta, idx = [], [], []
+S_sum, S_delta, S_half = np.zeros((d, d)), np.zeros((d, d)), np.zeros((d, d))
+err_sum, err_delta, err_half, idx = [], [], [], []
 rel = lambda S, seen: np.mean(np.linalg.norm((keys @ S - truth)[seen], axis=1) / np.linalg.norm(truth[seen], axis=1))
 for _ in range(steps):
     i = rng.integers(n_keys)
@@ -22,13 +22,16 @@ for _ in range(steps):
     truth[i] = v
     S_sum += np.outer(k, v)
     S_delta += np.outer(k, v - S_delta.T @ k)
+    S_half += 0.5 * np.outer(k, v - S_half.T @ k)
     idx.append(i)
     seen = np.abs(truth).sum(1) > 0
     err_sum.append(rel(S_sum, seen))
     err_delta.append(rel(S_delta, seen))
+    err_half.append(rel(S_half, seen))
 
 # storyboard check values
 assert f"{err_sum[-1]:.2f}" == "6.19" and f"{err_delta[-1]:.2f}" == "0.19", (err_sum[-1], err_delta[-1])
+assert f"{err_half[-1]:.2f}" == "0.59", err_half[-1]  # matches the page's DICT.delta["0.5"]
 assert idx[:8] == [4, 7, 7, 2, 7, 5, 3, 7]
 
 
@@ -55,22 +58,27 @@ class DictTest(Scene):
         ref_lab = Text("1 = error as big as the value", font_size=style.SMALL, color=style.MUTED)
         ref_lab.next_to(ax.c2p(300, 1), UP, buff=0.12).align_to(ax.c2p(300, 1), RIGHT)
 
-        def legend_row(color, name, y):
-            row = VGroup(Line(ORIGIN, 0.5 * RIGHT, color=color, stroke_width=style.DATA),
+        def legend_row(color, name, y, line=Line):
+            row = VGroup(line(ORIGIN, 0.6 * RIGHT, color=color, stroke_width=style.DATA),
                          Text(name, font_size=style.SMALL, color=style.INK)).arrange(RIGHT, buff=0.25)
             return row.next_to(ax.c2p(10, y), RIGHT, buff=0)
-        legend = VGroup(legend_row(style.BLUE, "plain sum", 7.6), legend_row(style.ORANGE, "delta rule, β = 1", 6.5))
+        legend = VGroup(legend_row(style.BLUE, "plain sum", 7.6), legend_row(style.ORANGE, "delta rule, β = 1", 6.6),
+                        legend_row(style.ORANGE, "delta rule, β = 0.5", 5.6, DashedLine))
         counter = always_redraw(lambda: Text(f"update {n()}", font_size=style.SMALL, color=style.INK)
                                 .next_to(ax.c2p(300, 8), DOWN, buff=0).align_to(ax.c2p(300, 8), RIGHT))
 
-        def curve(err, color):
+        def curve(err, color, dashed=False):
             def draw():
                 pts = [ax.c2p(j + 1, err[j]) for j in range(n())]
                 line = VMobject(stroke_color=color, stroke_width=style.DATA)
-                return line.set_points_as_corners(pts) if len(pts) > 1 else line
+                if len(pts) < 2:
+                    return line
+                line.set_points_as_corners(pts)
+                return DashedVMobject(line, num_dashes=max(1, int(line.get_arc_length() / 0.2))) if dashed else line
             return always_redraw(draw)
         blue = curve(err_sum, style.BLUE)
         orange = curve(err_delta, style.ORANGE)
+        half = curve(err_half, style.ORANGE, dashed=True)
 
         def light_slot(group):
             for j, (box, lab) in enumerate(group):
@@ -80,7 +88,7 @@ class DictTest(Scene):
         strip.add_updater(light_slot)
 
         # beat 1: a readable empty chart
-        self.add(title, strip, dict_lab, ax, x_lab, y_lab, ref, ref_lab, legend, counter, blue, orange)
+        self.add(title, strip, dict_lab, ax, x_lab, y_lab, ref, ref_lab, legend, counter, blue, half, orange)
         self.wait(1)
 
         # beat 2: the first 8 updates, slowly, lighting the written slot
@@ -100,11 +108,12 @@ class DictTest(Scene):
 
         # beat 4: call out the result
         end_sum = MathTex(f"{err_sum[-1]:.2f}", font_size=45, color=style.BLUE).move_to([5.1, ax.c2p(300, err_sum[-1])[1], 0])
-        end_delta = MathTex(f"{err_delta[-1]:.2f}", font_size=45, color=style.ORANGE).move_to([5.1, ax.c2p(300, err_delta[-1])[1] + 0.15, 0])
+        end_delta = MathTex(f"{err_delta[-1]:.2f}", font_size=45, color=style.ORANGE).move_to([5.1, ax.c2p(300, err_delta[-1])[1] + 0.05, 0])
+        end_half = MathTex(f"{err_half[-1]:.2f}", font_size=45, color=style.ORANGE).next_to(end_delta, UP, buff=0.12)
         tail = VMobject().set_points_as_corners([ax.c2p(j + 1, err_delta[j]) for j in range(200, 300)])
         tail_box = style.box(tail)
         crosstalk = Text("what's left: crosstalk between keys", font_size=style.SMALL, color=style.ORANGE).next_to(ax.c2p(300, 2.6), LEFT, buff=0)
-        self.play(Write(end_sum), Write(end_delta), Create(tail_box), FadeIn(crosstalk), run_time=1.5)
+        self.play(Write(end_sum), Write(end_delta), Write(end_half), Create(tail_box), FadeIn(crosstalk), run_time=1.5)
 
         # beat 5: held final frame
         self.wait(2.8)

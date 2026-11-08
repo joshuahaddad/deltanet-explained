@@ -1,25 +1,34 @@
 # DeltaNet, explained
 
-Companion to the post *DeltaNet: Attention That Overwrites Instead of Piling Up*.
+The companion repo for the post *DeltaNet: Attention That Overwrites Instead of Piling Up*.
 
-- `deltanet.py`: linear attention and DeltaNet in about 30 lines of NumPy, plus checks for the post's claims.
-- `make_figures.py`: makes the figures in `figures/`.
-- `interactive/index.html`: the interactive version of the figures. Open it in a browser.
+- `deltanet.py`: linear attention and DeltaNet in about 30 lines of NumPy, with checks for the post's claims.
+- `animations/`: the post's figures, one [Manim](https://www.manim.community/) scene per file. `style.py` holds the shared look, and `STYLE.md` describes it.
+- `figures/`: the rendered GIFs.
+- `interactive/index.html`: an interactive version you can play with in the browser ([live page](https://joshuahaddad.github.io/deltanet-explained/interactive/)).
 
 ## Run
 
-Needs [uv](https://docs.astral.sh/uv/).
+Check the math (needs [uv](https://docs.astral.sh/uv/)):
 
 ```bash
-uv run make_figures.py
+uv run deltanet.py
 ```
 
-This checks the claims, then writes the figures:
+This checks that:
 
-- the RNN form and the parallel form of linear attention give the same outputs
-- writing the same pair n times: the plain sum returns n·v, the delta rule returns v
-- one delta-rule write equals one gradient step on ½‖Sᵀk − v‖²
-- the dict test: the plain sum's error keeps growing, the delta rule's stays small
+- the RNN form and the parallel form of linear attention give the same outputs;
+- writing the same pair n times returns n·v from the plain sum and v from the delta rule;
+- one delta-rule write is one gradient step on ½‖Sᵀk − v‖².
+
+Render the figures (needs Docker). The first run builds the image from `Dockerfile`: pinned Manim plus the style's fonts.
+
+```bash
+./make_animations.sh            # all of them
+./make_animations.sh crosstalk  # just one
+```
+
+Each scene computes its numbers with NumPy and asserts them. The dict test, for example, checks the final errors of 6.19 for the plain sum and 0.19 for the delta rule.
 
 ## The two update rules
 

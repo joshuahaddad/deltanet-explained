@@ -2,3 +2,6 @@
 __pycache__/
 lesson.html
 notes/
+.media/
+.cache/
+animations/media/

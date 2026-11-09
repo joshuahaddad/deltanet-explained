@@ -1,11 +1,8 @@
 """8 keys, 300 random overwrites: the plain sum's readback error climbs, the delta rule's stays small (β = 1 lowest)."""
-import sys
-
 import numpy as np
 from manim import *
 import style
 
-sys.path.insert(0, "/manim")
 from deltanet import unit
 
 # same setup and RNG order as make_figures.py:dict_test and interactive/make_dict_test_json.py

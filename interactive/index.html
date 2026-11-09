@@ -7,7 +7,7 @@
 <title>DeltaNet, interactively</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/computer-modern@0.1.3/cmu-serif.css">
 <style>
-  /* Palette "ink + plum accent", from animations/style.py. The figure plates stay dark in both themes. */
+  /* Palette "ink + plum accent", from figure-kit figkit/style.py. The figure plates stay dark in both themes. */
   :root {
     --bg: #16141C; --mat: #1B1922; --surface: #211E29; --rule: #2E2A38;
     --muted: #8A8696; --ink: #ECEAF0;
@@ -289,7 +289,7 @@ const norm = v => Math.hypot(...v);
 // after: the text that follows, which carries the baseline reset (an empty tspan would drop it)
 const sub = (l, n, after = '') => `<tspan font-style="italic">${l}</tspan><tspan dy="5" font-size="70%">${n}</tspan><tspan dy="-5">${after}</tspan>`;
 
-// Tweens: 300 ms easeOutCubic (STYLE.md SNAPPY), none under reduced motion.
+// Tweens: 300 ms easeOutCubic (figure-kit STYLE.md SNAPPY), none under reduced motion.
 const RM = matchMedia('(prefers-reduced-motion: reduce)');
 const tweens = {};
 function tween(key, from, to, fn, ms = 300) {

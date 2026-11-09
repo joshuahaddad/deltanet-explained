@@ -3,7 +3,7 @@
 The companion repo for the post [*Drop the Softmax and Attention Becomes an RNN*](https://joshuahaddad.substack.com/p/drop-softmax-and-attention-becomes-an-rnn).
 
 - `deltanet.py`: linear attention and DeltaNet in about 30 lines of NumPy, with checks for the post's claims.
-- `animations/`: the post's figures, one [Manim](https://www.manim.community/) scene per file. `style.py` holds the shared look, and `STYLE.md` describes it.
+- `animations/`: the post's figures, one [Manim](https://www.manim.community/) scene per file. The shared look comes from [figure-kit](https://github.com/joshuahaddad/figure-kit) (`STYLE.md` there).
 - `figures/`: the rendered GIFs.
 - `interactive/index.html`: an interactive version you can play with in the browser ([live page](https://joshuahaddad.github.io/deltanet-explained/interactive/)).
 
@@ -21,7 +21,7 @@ This checks that:
 - writing the same pair n times returns n·v from the plain sum and v from the delta rule;
 - one delta-rule write is one gradient step on ½‖Sᵀk − v‖².
 
-Render the figures (needs Docker). The first run builds the image from `Dockerfile`: pinned Manim plus the style's fonts.
+Render the figures (needs Docker). The first run builds the pinned figure-kit image: Manim, the style's fonts and the GIF pipeline.
 
 ```bash
 ./make_animations.sh            # all of them
